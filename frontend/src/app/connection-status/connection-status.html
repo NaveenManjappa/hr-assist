@@ -1,0 +1,16 @@
+<button
+  type="button"
+  data-testid="connection-status"
+  [attr.data-state]="state()"
+  [attr.aria-busy]="health.isLoading()"
+  (click)="recheck()"
+  class="status"
+  title="Recheck connection"
+>
+  <span class="sr-only">Connection status:</span>
+  <span class="lamps" aria-hidden="true">
+    <span class="lamp" [class.lamp-on]="apiUp()">API</span>
+    <span class="lamp" [class.lamp-on]="qdrantUp()">Qdrant</span>
+  </span>
+  <span class="label" aria-live="polite">{{ label() }}</span>
+</button>

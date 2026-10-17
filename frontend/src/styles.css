@@ -1,0 +1,57 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-paper: #efe8da;
+  --color-paper-deep: #e3dac7;
+  --color-ink: #1d1a15;
+  --color-ink-soft: #5b5446;
+  --color-rule: #cbbfa6;
+  --color-margin: #c7563f;
+  --color-accent: #1e5a43;
+  --color-signal-ok: #2b7a4b;
+  --color-signal-warn: #b7701c;
+  --color-signal-off: #9b3426;
+
+  --font-display: 'Gloock', 'Times New Roman', serif;
+  --font-sans: 'Schibsted Grotesk', ui-sans-serif, sans-serif;
+  --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
+}
+
+html {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ledger paper: faint ruled lines, a margin rule and a little grain. */
+body {
+  min-height: 100dvh;
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(
+      to right,
+      transparent calc(2.75rem - 1px),
+      color-mix(in oklab, var(--color-margin) 45%, transparent) calc(2.75rem - 1px),
+      color-mix(in oklab, var(--color-margin) 45%, transparent) 2.75rem,
+      transparent 2.75rem
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 31px,
+      color-mix(in oklab, var(--color-rule) 40%, transparent) 31px 32px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 639px) {
+  body {
+    background-image:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0 31px,
+        color-mix(in oklab, var(--color-rule) 40%, transparent) 31px 32px
+      ),
+      none;
+  }
+}

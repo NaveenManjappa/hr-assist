@@ -1,0 +1,115 @@
+:host {
+  display: block;
+}
+
+.shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100dvh;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .shell {
+    padding: 0 2.5rem 0 4.5rem;
+  }
+}
+
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-bottom: 2px solid var(--color-ink);
+}
+
+.docket {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.page {
+  padding: clamp(3rem, 10vh, 7rem) 0 3rem;
+}
+
+.headline {
+  margin-top: 1rem;
+  max-width: 18ch;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 6.5vw, 4.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  color: var(--color-ink);
+}
+
+.headline em {
+  font-style: normal;
+  color: var(--color-accent);
+}
+
+.lede {
+  margin-top: 1.75rem;
+  max-width: 52ch;
+  font-size: 1.075rem;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+}
+
+.ledger {
+  display: grid;
+  margin-top: 3rem;
+  max-width: 44rem;
+  border-top: 1px solid var(--color-ink);
+}
+
+.ledger > div {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 11rem) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px dashed var(--color-rule);
+}
+
+.ledger dt {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+  padding-top: 0.2rem;
+}
+
+.ledger dd {
+  color: var(--color-ink);
+}
+
+.colophon {
+  padding: 1.25rem 0 1.75rem;
+  border-top: 1px solid var(--color-rule);
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+
+.reveal {
+  animation: rise 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+}
