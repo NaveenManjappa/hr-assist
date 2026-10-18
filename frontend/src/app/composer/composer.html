@@ -1,4 +1,15 @@
 <form class="composer" (submit)="$event.preventDefault(); submit()">
+  <div class="as-of">
+    <label for="as-of-date">Answering as of</label>
+    <input
+      id="as-of-date"
+      #asOf
+      type="date"
+      required
+      [value]="asOfDate()"
+      (change)="changeAsOfDate(asOf.value)"
+    />
+  </div>
   <label class="sr-only" for="question">Your question</label>
   <textarea
     id="question"

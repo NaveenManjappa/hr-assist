@@ -19,6 +19,30 @@
     var(--shadow-md);
 }
 
+.as-of {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.as-of input {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  color: var(--text);
+  font: inherit;
+  color-scheme: light dark;
+}
+
+.as-of input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 textarea {
   display: block;
   width: 100%;

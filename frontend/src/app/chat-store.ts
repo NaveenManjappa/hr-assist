@@ -33,7 +33,7 @@ export class ChatStore {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
-  readonly asOfDate = signal(new Date());
+  readonly asOfDate = signal(formatDate(new Date(), 'yyyy-MM-dd', 'en-US'));
   readonly turns = signal<Turn[]>([]);
   readonly pending = signal(false);
   readonly error = signal<string | null>(null);
@@ -59,7 +59,7 @@ export class ChatStore {
             ? { role: 'user', content: turn.content }
             : { role: 'assistant', content: turn.reply.message },
         ),
-      as_of_date: formatDate(this.asOfDate(), 'yyyy-MM-dd', 'en-US'),
+      as_of_date: this.asOfDate(),
     };
 
     this.http.post<ChatReply>(`${this.baseUrl}/api/chat`, body).subscribe({

@@ -38,6 +38,25 @@ BRIEFING_SLIDE_4 = Chunk(
         chunking_version="structure_v1",
     ),
 )
+SUPERSEDED_CARRYOVER = Chunk(
+    id="NDS-HR-LV-006-4.3",
+    text="Header line\n4.3 Carryover\n\nUp to 5 days of unused leave may be carried over.",
+    metadata=ChunkMetadata(
+        document_id="NDS-HR-LV-006",
+        document_version="v1.0",
+        title="Leave Policy",
+        document_kind="policy_document",
+        status="superseded",
+        effective_from=date(2025, 1, 1),
+        effective_to=date(2026, 9, 30),
+        section_number="4.3",
+        section_title="Carryover",
+        section_path=["4 Annual leave", "4.3 Carryover"],
+        page_start=3,
+        page_end=3,
+        chunking_version="structure_v1",
+    ),
+)
 
 
 def chat(
@@ -224,3 +243,72 @@ def test_the_prompt_puts_policy_documents_over_summary_decks_and_locates_slides(
     assert "Summary Deck, current" in system
     assert "Slide 4: Annual leave: what changed" in system
     assert "Section: 3 Annual leave > 3.1 Entitlement, p.5" in system
+
+
+def test_the_as_of_date_defaults_to_today(settings: Settings) -> None:
+    chat_model = FakeChatModel(AssistantReply(response_type="answer", message="27 days."))
+    app = create_app(
+        settings,
+        vector_store=FakeVectorStore(),
+        retriever=FakeRetriever([ENTITLEMENT]),
+        chat_model=chat_model,
+    )
+
+    before = date.today()
+    TestClient(app).post("/api/chat", json=ask())
+    after = date.today()
+
+    system = str(chat_model.prompts[0][0].content)
+    assert any(f"The As-Of Date is {d.isoformat()}." in system for d in {before, after})
+
+
+def test_the_prompt_shows_a_superseded_source_with_its_closed_effective_period(
+    settings: Settings,
+) -> None:
+    chat_model = FakeChatModel(AssistantReply(response_type="answer", message="5 days."))
+    app = create_app(
+        settings,
+        vector_store=FakeVectorStore(),
+        retriever=FakeRetriever([SUPERSEDED_CARRYOVER, ENTITLEMENT]),
+        chat_model=chat_model,
+    )
+
+    TestClient(app).post(
+        "/api/chat",
+        json={**ask("On 15 June 2026, what was the carryover rule?"), "as_of_date": "2026-10-18"},
+    )
+
+    system = str(chat_model.prompts[0][0].content)
+    assert "The As-Of Date is 2026-10-18." in system
+    assert (
+        "[1] Leave Policy (NDS-HR-LV-006 v1.0), Policy Document, superseded, "
+        "effective 2025-01-01 to 2026-09-30"
+    ) in system
+    assert (
+        "[2] Leave and Absence Standard (NDS-HR-LAS-002 v1.2), Policy Document, current, "
+        "effective 2026-10-01 (no end date)"
+    ) in system
+    assert (
+        "Never apply a superseded source to an Applicable Date outside its Effective Period"
+        in system
+    )
+    assert "say that the rule has since been superseded" in system
+
+
+def test_a_citation_from_a_superseded_source_is_marked_superseded(settings: Settings) -> None:
+    reply = AssistantReply(
+        response_type="answer",
+        message="On 15 June 2026 up to 5 days could be carried over. That rule is superseded.",
+        cited_sources=[1],
+    )
+
+    citations = chat(
+        settings,
+        reply,
+        ask("On 15 June 2026, what was the carryover rule?"),
+        FakeRetriever([SUPERSEDED_CARRYOVER, ENTITLEMENT]),
+    ).json()["citations"]
+
+    assert [(c["document_id"], c["document_version"], c["status"]) for c in citations] == [
+        ("NDS-HR-LV-006", "v1.0", "superseded")
+    ]

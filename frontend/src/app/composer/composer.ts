@@ -7,6 +7,7 @@ import { Component, ElementRef, input, model, output, viewChild } from '@angular
 })
 export class Composer {
   readonly draft = model('');
+  readonly asOfDate = model.required<string>();
   readonly busy = input(false);
   readonly ask = output<string>();
 
@@ -19,6 +20,10 @@ export class Composer {
   protected submit(): void {
     if (this.busy() || !this.draft().trim()) return;
     this.ask.emit(this.draft());
+  }
+
+  protected changeAsOfDate(value: string): void {
+    if (value) this.asOfDate.set(value);
   }
 
   protected submitOnEnter(event: Event): void {
