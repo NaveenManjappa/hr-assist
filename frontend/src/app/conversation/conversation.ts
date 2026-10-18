@@ -34,7 +34,10 @@ export class Conversation {
     });
   }
 
-  protected pages(citation: Citation): string {
+  protected location(citation: Citation): string {
+    if (citation.slide !== null) {
+      return `slide ${citation.slide}`;
+    }
     return citation.page_start === citation.page_end
       ? `p.${citation.page_start}`
       : `pp.${citation.page_start}–${citation.page_end}`;

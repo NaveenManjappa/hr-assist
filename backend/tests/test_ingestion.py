@@ -187,3 +187,70 @@ def test_no_table_is_split_across_chunks(corpus_chunks: list[Chunk]) -> None:
                 f"{chunk.metadata.document_id} §{chunk.metadata.section_number} "
                 f"starts mid-table: {lines[start][:60]}"
             )
+
+
+def chunk_for_slide(chunks: list[Chunk], document_id: str, slide: int) -> Chunk:
+    [chunk] = [
+        c for c in chunks if c.metadata.document_id == document_id and c.metadata.slide == slide
+    ]
+    return chunk
+
+
+def test_manager_briefing_slide_4_holds_its_table_and_speaker_notes(
+    corpus_chunks: list[Chunk],
+) -> None:
+    chunk = chunk_for_slide(corpus_chunks, "NDS-HR-PRES-011", 4)
+
+    assert "Annual leave: what changed" in chunk.text
+    for row in [
+        "|Rule|Until 30 September 2026 (archived v1.0)|From 1 October 2026 (current)|",
+        "|Notice for 2–5 days|5 working days|10 working days|",
+        "|Carryover|3 days, use by 28 February|5 days, use by 31 March|",
+    ]:
+        assert row in chunk.body
+    assert (
+        "Notice rules depend on the date the request was submitted, not the date of the leave."
+        in chunk.body
+    )
+
+
+@pytest.mark.parametrize(
+    ("document_id", "slide_count"),
+    [("NDS-HR-PRES-011", 13), ("NDS-HR-PRES-012", 9), ("NDS-SEC-PRES-013", 9)],
+)
+def test_each_summary_deck_slide_is_one_chunk_located_by_its_slide_number(
+    corpus_chunks: list[Chunk], document_id: str, slide_count: int
+) -> None:
+    chunks = [c for c in corpus_chunks if c.metadata.document_id == document_id]
+
+    assert [c.metadata.slide for c in chunks] == list(range(1, slide_count + 1))
+    for chunk in chunks:
+        assert chunk.metadata.document_kind == "summary_deck"
+        assert chunk.metadata.page_start is None
+        assert chunk.metadata.page_end is None
+
+
+def test_a_deck_chunk_is_headed_by_its_document_and_slide(corpus_chunks: list[Chunk]) -> None:
+    chunk = chunk_for_slide(corpus_chunks, "NDS-HR-PRES-011", 4)
+
+    assert chunk.text.startswith(
+        "What changes on 1 October 2026: Manager Briefing "
+        "(NDS-HR-PRES-011 v1.0, summary deck, current, effective 2026-10-01)\n"
+        "Slide 4\n\n"
+        "## Annual leave: what changed\n"
+    )
+    assert chunk.metadata.section_title == "Annual leave: what changed"
+
+
+def test_speaker_notes_are_kept_and_slide_numbers_are_not(corpus_chunks: list[Chunk]) -> None:
+    sickness = chunk_for_slide(corpus_chunks, "NDS-HR-PRES-011", 6)
+
+    assert "Speaker notes: Company sick pay in any rolling 12 months" in sickness.body
+    assert not sickness.body.rstrip().endswith("\n6")
+
+
+def test_a_manifest_version_that_disagrees_with_the_title_slide_fails_ingestion() -> None:
+    entry = manifest_entry("NDS-HR-PRES-012").model_copy(update={"document_version": "v2.0"})
+
+    with pytest.raises(ManifestError, match=r"NDS-HR-PRES-012 v2\.0.*Version 2\.0"):
+        build_chunks([entry])

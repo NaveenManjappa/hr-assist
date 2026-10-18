@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Any
 
 import pytest
@@ -6,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from hr_assist.answering import AssistantReply
 from hr_assist.api import UpstreamError, create_app
+from hr_assist.corpus import Chunk, ChunkMetadata
 from hr_assist.settings import Settings
 
 QUESTION = (
@@ -15,6 +17,27 @@ QUESTION = (
 
 ENTITLEMENT = make_chunk("3.1", "Entitlement", "|Less than 3 years|27|8|35|262.5|", page=5)
 ACCRUAL = make_chunk("3.2", "Accrual and booking", "Leave accrues at one-twelfth...", page=5)
+BRIEFING_SLIDE_4 = Chunk(
+    id="NDS-HR-PRES-011-slide-4",
+    text=(
+        "Header line\nSlide 4\n\n## Annual leave: what changed\n\n"
+        "|Notice for 2–5 days|5 working days|10 working days|"
+    ),
+    metadata=ChunkMetadata(
+        document_id="NDS-HR-PRES-011",
+        document_version="v1.0",
+        title="What changes on 1 October 2026: Manager Briefing",
+        document_kind="summary_deck",
+        status="current",
+        effective_from=date(2026, 10, 1),
+        effective_to=None,
+        section_number=None,
+        section_title="Annual leave: what changed",
+        section_path=["Annual leave: what changed"],
+        slide=4,
+        chunking_version="structure_v1",
+    ),
+)
 
 
 def chat(
@@ -59,6 +82,7 @@ def test_an_answer_comes_back_with_its_response_type_message_and_citations(
                 "section": "3.1 Entitlement",
                 "page_start": 5,
                 "page_end": 5,
+                "slide": None,
                 "snippet": "|Less than 3 years|27|8|35|262.5|",
                 "status": "current",
             }
@@ -150,3 +174,53 @@ def test_an_upstream_failure_maps_to_503(settings: Settings) -> None:
 
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "upstream_unavailable"
+
+
+def test_a_summary_deck_citation_carries_its_slide_instead_of_pages(settings: Settings) -> None:
+    reply = AssistantReply(
+        response_type="answer",
+        message="Requests for 2 to 5 days need 10 working days' notice.",
+        cited_sources=[1, 2],
+    )
+
+    citations = chat(settings, reply, ask(), FakeRetriever([BRIEFING_SLIDE_4, ENTITLEMENT])).json()[
+        "citations"
+    ]
+
+    assert citations[0] == {
+        "document_id": "NDS-HR-PRES-011",
+        "document_version": "v1.0",
+        "title": "What changes on 1 October 2026: Manager Briefing",
+        "section": "Annual leave: what changed",
+        "page_start": None,
+        "page_end": None,
+        "slide": 4,
+        "snippet": (
+            "## Annual leave: what changed\n\n|Notice for 2–5 days|5 working days|10 working days|"
+        ),
+        "status": "current",
+    }
+    assert (citations[1]["page_start"], citations[1]["slide"]) == (5, None)
+
+
+def test_the_prompt_puts_policy_documents_over_summary_decks_and_locates_slides(
+    settings: Settings,
+) -> None:
+    chat_model = FakeChatModel(AssistantReply(response_type="answer", message="10 days."))
+    app = create_app(
+        settings,
+        vector_store=FakeVectorStore(),
+        retriever=FakeRetriever([BRIEFING_SLIDE_4, ENTITLEMENT]),
+        chat_model=chat_model,
+    )
+
+    TestClient(app).post("/api/chat", json=ask())
+
+    system = str(chat_model.prompts[0][0].content)
+    assert "A Policy Document prevails over a Summary Deck" in system
+    assert "follow the Policy Document and say that you did so because it prevails" in system
+    assert "Precedence Order" in system
+    assert "Employee Handbook" in system
+    assert "Summary Deck, current" in system
+    assert "Slide 4: Annual leave: what changed" in system
+    assert "Section: 3 Annual leave > 3.1 Entitlement, p.5" in system

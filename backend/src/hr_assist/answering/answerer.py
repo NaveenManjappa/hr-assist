@@ -69,9 +69,10 @@ def _citation(chunk: Chunk) -> Citation:
         document_id=m.document_id,
         document_version=m.document_version,
         title=m.title,
-        section=f"{m.section_number} {m.section_title}",
+        section=f"{m.section_number} {m.section_title}" if m.section_number else m.section_title,
         page_start=m.page_start,
         page_end=m.page_end,
+        slide=m.slide,
         snippet=chunk.body[:SNIPPET_CHARS],
         status=m.status,
     )

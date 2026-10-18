@@ -41,12 +41,15 @@ class ChatRequest(BaseModel):
 
 
 class Citation(BaseModel):
+    """Points at a section and pages of a Policy Document, or a slide of a Summary Deck."""
+
     document_id: str
     document_version: str
     title: str
     section: str
-    page_start: int
-    page_end: int
+    page_start: int | None
+    page_end: int | None
+    slide: int | None
     snippet: str
     status: DocumentStatus
 

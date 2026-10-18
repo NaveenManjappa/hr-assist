@@ -19,7 +19,7 @@ PPTX ─► python-pptx (one unit per slide, notes included) ──────�
 2. **Normalise**: strip the running header (`Leave and Absence Standard | NDS-HR-LAS-002 | v1.2`, `**Northstar Digital Services Ltd.**`) and footer (`Internal · Current · …`, `Page 5 of 15`).
 3. **Split by numbered section**: a new section starts at each Markdown heading that begins with a section number (`3`, `3.1`, `3.10`). The section path comes from the number (`3.1` sits under `3`), not from the heading level. Unnumbered headings, such as worked examples, stay inside the section they belong to. Lines are read page by page, so a section that crosses a page break gets the right `page_start` and `page_end`. Everything before the first numbered section is dropped, which removes the cover, document control and contents pages.
 4. **Split oversized sections** (~500 tokens, ~60 overlap) into parts made of whole paragraphs and tables. A table is never split, and a heading or table caption stays with the block after it, so a part holding a long table can exceed the limit. Only a paragraph that alone exceeds the limit goes through `RecursiveCharacterTextSplitter`. Each part carries the pages its own text sits on.
-5. **Decks**: one chunk per slide, containing the title, body text, tables rendered as Markdown, and speaker notes. The notes hold policy content that isn't on the slide.
+5. **Decks**: one chunk per slide, containing the title, body text, tables rendered as Markdown, and speaker notes. The notes hold policy content that isn't on the slide. A deck chunk carries `slide` in place of `page_start` and `page_end`, has no `section_number`, and uses the slide title as its `section_title`.
 
 The loader and the chunker sit behind our own `Parser` and `ChunkingStrategy` interfaces. The chunking config is versioned (`structure_v1`), and that version is part of the Qdrant collection name.
 
@@ -63,6 +63,24 @@ Its metadata:
  "page_start": 5, "page_end": 5, "chunking_version": "structure_v1"}
 ```
 
+A deck chunk is headed by its document and slide number, and its metadata carries `slide` in place of pages:
+
+```
+What changes on 1 October 2026: Manager Briefing (NDS-HR-PRES-011 v1.0, summary deck, current, effective 2026-10-01)
+Slide 4
+
+## Annual leave: what changed
+
+|Rule|Until 30 September 2026 (archived v1.0)|From 1 October 2026 (current)|
+|---|---|---|
+|Notice for 2–5 days|5 working days|10 working days|
+...
+
+Speaker notes: Use this table when employees ask what changed. Notice rules depend on the date the request was submitted, not the date of the leave. ...
+```
+
+Adding decks left every PDF chunk unchanged, so it stays under `structure_v1`.
+
 ## Corpus Manifest
 
 `data/manifest.yaml` is the single list of what gets ingested and what each file *is*:
@@ -90,9 +108,9 @@ Its metadata:
 
 **Why a manifest rather than parsing the facts out of the files:**
 - The kind of a document (Policy Document, Summary Deck or Test Fixture) and its Effective Period drive precedence and date reasoning. A wrong value here produces confidently wrong answers, so these facts should be explicit and reviewable in a diff.
-- The PDFs print these facts in a running header, but the decks don't do it consistently, and the archived policy has no effective end date in its header.
+- The PDFs print these facts in a running header and the decks on their title slide, but none of them prints its kind, and the archived policy has no effective end date in its header.
 - Ingesting only the files listed in the manifest means the `evals/` files can't be ingested by accident.
-- Ingestion checks the manifest against the PDF running header and fails if the Document ID or Version disagree. This catches a manifest entry that has drifted from its file.
+- Ingestion checks the manifest against the PDF running header, or a deck's title slide (`NDS-HR-PRES-011  ·  Version 1.0`), and fails if the Document ID or Version disagree. This catches a manifest entry that has drifted from its file.
 
 **Adding or updating a document:** put the file under `data/`, add or edit its manifest entry (when a new version replaces an old one, mark the old entry `superseded` and give it an `effective_to`), then run `uv run hr-assist ingest`. Ingestion rebuilds the whole collection, which takes about a minute for this corpus, so we don't need incremental update logic yet.
 
@@ -110,4 +128,4 @@ Its metadata:
 - It pulls in `onnxruntime` and a layout model (~60 MB). Ingestion is an offline CLI step, so the deployed API doesn't carry this weight.
 - Changing the chunking means a new `chunking_version` and a new collection, and the old collection stays available for comparison.
 - Keeping tables whole means some chunks run past ~500 tokens (the longest, handbook Appendix tables, is about 900). That is well inside the embedding model's input limit.
-- Ingestion fails if a PDF's running header names a different Document ID or Version from its manifest entry, or has no running header.
+- Ingestion fails if a PDF's running header names a different Document ID or Version from its manifest entry, or has no running header, and likewise if a deck's title slide doesn't print them.

@@ -76,7 +76,19 @@ describe('Chat page', () => {
           section: '3.1 Entitlement',
           page_start: 5,
           page_end: 5,
+          slide: null,
           snippet: '|Less than 3 years|27|8|35|262.5|',
+          status: 'current',
+        },
+        {
+          document_id: 'NDS-HR-PRES-011',
+          document_version: 'v1.0',
+          title: 'What changes on 1 October 2026: Manager Briefing',
+          section: 'Annual leave: what changed',
+          page_start: null,
+          page_end: null,
+          slide: 2,
+          snippet: "27 days' annual leave for full-time staff",
           status: 'current',
         },
       ],
@@ -91,6 +103,7 @@ describe('Chat page', () => {
     );
     expect(citations).toEqual([
       'Leave and Absence Standard (NDS-HR-LAS-002 v1.2) · §3.1 Entitlement · p.5',
+      'What changes on 1 October 2026: Manager Briefing (NDS-HR-PRES-011 v1.0) · Annual leave: what changed · slide 2',
     ]);
     expect(root.querySelector('[data-testid="pending"]')).toBeNull();
   });

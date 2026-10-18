@@ -11,8 +11,9 @@ export interface Citation {
   document_version: string;
   title: string;
   section: string;
-  page_start: number;
-  page_end: number;
+  page_start: number | null;
+  page_end: number | null;
+  slide: number | null;
   snippet: string;
   status: 'current' | 'superseded';
 }

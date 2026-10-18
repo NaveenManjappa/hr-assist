@@ -30,6 +30,16 @@ def check_running_header(entry: ManifestEntry, pages: list[Page]) -> None:
         )
 
 
+def check_title_slide(entry: ManifestEntry, slides: list[Page]) -> None:
+    """Fails unless a deck's title slide prints the manifest's Document ID and Version."""
+    printed = f"{entry.document_id}  ·  Version {entry.document_version.removeprefix('v')}"
+    if not slides or printed not in slides[0].text:
+        raise ManifestError(
+            f"Manifest describes {entry.path.name} as {entry.document_id} "
+            f"{entry.document_version}, but its title slide does not print '{printed}'"
+        )
+
+
 def normalise(pages: list[Page]) -> list[Page]:
     """Strips the running header, footer and superseded banner from every page."""
     return [Page(page.number, _strip_boilerplate(page.text)) for page in pages]

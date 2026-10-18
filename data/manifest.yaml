@@ -56,3 +56,33 @@
   effective_from: 2025-01-01
   effective_to: 2026-09-30
   superseded_by: NDS-HR-LAS-002
+
+# Summary Decks: one chunk per slide, speaker notes included. Policy Documents prevail over them.
+# The Manager Briefing was presented in September 2026, but it describes the rules in force from
+# 1 October 2026, so its Effective Period starts then.
+- path: data/policies/11_Policy_Changes_Oct2026_Manager_Briefing.pptx
+  document_id: NDS-HR-PRES-011
+  document_version: v1.0
+  title: "What changes on 1 October 2026: Manager Briefing"
+  kind: summary_deck
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/12_New_Starter_Induction_First_Six_Months.pptx
+  document_id: NDS-HR-PRES-012
+  document_version: v1.0
+  title: "Your first six months at Northstar: New Starter Induction"
+  kind: summary_deck
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/13_Responsible_GenAI_Training_2026.pptx
+  document_id: NDS-SEC-PRES-013
+  document_version: v1.0
+  title: Responsible Use of Generative AI Training 2026/27
+  kind: summary_deck
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null

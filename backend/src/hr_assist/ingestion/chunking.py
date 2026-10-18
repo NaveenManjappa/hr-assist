@@ -68,6 +68,8 @@ class StructureV1:
     An oversized section is packed into parts of whole paragraphs and tables. A table is never
     split, so a part holding a long table can exceed the size limit. Each part carries the pages
     its own text sits on.
+
+    A Summary Deck becomes one chunk per slide, located by its slide number instead of pages.
     """
 
     version = "structure_v1"
@@ -81,6 +83,8 @@ class StructureV1:
         )
 
     def chunk(self, entry: ManifestEntry, pages: list[Page]) -> list[Chunk]:
+        if entry.kind == "summary_deck":
+            return [self._slide_chunk(entry, slide) for slide in pages]
         sections = _split_into_sections(pages)
         titles = {section.number: f"{section.number} {section.title}" for section in sections}
         chunks = []
@@ -89,33 +93,66 @@ class StructureV1:
             header = f"{_document_line(entry)}\n{' > '.join(path)}"
             for part, blocks in enumerate(self._parts(section.blocks())):
                 chunks.append(
-                    Chunk(
-                        id=str(
-                            uuid.uuid5(
-                                _CHUNK_NAMESPACE,
-                                f"{entry.document_id}|{entry.document_version}|"
-                                f"{section.number}|{part}",
-                            )
-                        ),
+                    self._chunk(
+                        entry,
+                        key=f"{section.number}|{part}",
                         text=f"{header}\n\n{_join(blocks)}",
-                        metadata=ChunkMetadata(
-                            document_id=entry.document_id,
-                            document_version=entry.document_version,
-                            title=entry.title,
-                            document_kind=entry.kind,
-                            status=entry.status,
-                            effective_from=entry.effective_from,
-                            effective_to=entry.effective_to,
-                            section_number=section.number,
-                            section_title=section.title,
-                            section_path=path,
-                            page_start=min(b.page_start for b in blocks),
-                            page_end=max(b.page_end for b in blocks),
-                            chunking_version=self.version,
-                        ),
+                        section_number=section.number,
+                        section_title=section.title,
+                        section_path=path,
+                        page_start=min(b.page_start for b in blocks),
+                        page_end=max(b.page_end for b in blocks),
                     )
                 )
         return chunks
+
+    def _slide_chunk(self, entry: ManifestEntry, slide: Page) -> Chunk:
+        title = slide.text.split("\n\n", 1)[0].removeprefix("## ").strip()
+        return self._chunk(
+            entry,
+            key=f"slide {slide.number}",
+            text=f"{_document_line(entry)}\nSlide {slide.number}\n\n{slide.text}",
+            section_number=None,
+            section_title=title,
+            section_path=[title],
+            slide=slide.number,
+        )
+
+    def _chunk(
+        self,
+        entry: ManifestEntry,
+        key: str,
+        text: str,
+        section_number: str | None,
+        section_title: str,
+        section_path: list[str],
+        page_start: int | None = None,
+        page_end: int | None = None,
+        slide: int | None = None,
+    ) -> Chunk:
+        """A chunk with a stable ID and the document facts from its manifest entry."""
+        return Chunk(
+            id=str(
+                uuid.uuid5(_CHUNK_NAMESPACE, f"{entry.document_id}|{entry.document_version}|{key}")
+            ),
+            text=text,
+            metadata=ChunkMetadata(
+                document_id=entry.document_id,
+                document_version=entry.document_version,
+                title=entry.title,
+                document_kind=entry.kind,
+                status=entry.status,
+                effective_from=entry.effective_from,
+                effective_to=entry.effective_to,
+                section_number=section_number,
+                section_title=section_title,
+                section_path=section_path,
+                page_start=page_start,
+                page_end=page_end,
+                slide=slide,
+                chunking_version=self.version,
+            ),
+        )
 
     def _parts(self, blocks: list[_Block]) -> list[list[_Block]]:
         """Packs blocks into parts within the size limit, overlapping by trailing paragraphs."""
@@ -205,4 +242,8 @@ def _document_line(entry: ManifestEntry) -> str:
     period = f"effective {entry.effective_from.isoformat()}"
     if entry.effective_to is not None:
         period += f" to {entry.effective_to.isoformat()}"
-    return f"{entry.title} ({entry.document_id} {entry.document_version}, {entry.status}, {period})"
+    kind = "summary deck, " if entry.kind == "summary_deck" else ""
+    return (
+        f"{entry.title} ({entry.document_id} {entry.document_version}, "
+        f"{kind}{entry.status}, {period})"
+    )

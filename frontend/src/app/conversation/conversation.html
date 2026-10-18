@@ -4,7 +4,7 @@
       <h1>Ask a question about Northstar HR policy</h1>
       <p class="welcome-lede">
         Answers come only from Northstar's Policy Documents and Summary Decks. Each one cites the
-        document, version, section and page it relies on, so you can check it yourself.
+        document, version, section and page or slide it relies on, so you can check it yourself.
       </p>
 
       <p class="suggestions-label">Try asking</p>
@@ -41,8 +41,9 @@
                 @for (citation of turn.reply.citations; track $index) {
                   <li data-testid="citation">
                     {{ citation.title }} ({{ citation.document_id }}
-                    {{ citation.document_version }}) · §{{ citation.section }} ·
-                    {{ pages(citation) }}
+                    {{ citation.document_version }}) ·
+                    {{ citation.slide === null ? '§' : '' }}{{ citation.section }} ·
+                    {{ location(citation) }}
                   </li>
                 }
               </ol>
