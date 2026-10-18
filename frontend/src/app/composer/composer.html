@@ -1,0 +1,18 @@
+<form class="composer" (submit)="$event.preventDefault()">
+  <label class="sr-only" for="question">Your question</label>
+  <textarea
+    id="question"
+    #question
+    rows="2"
+    placeholder="Ask about leave, sickness, expenses, hybrid working…"
+    [value]="draft()"
+    (input)="draft.set(question.value)"
+  ></textarea>
+  <div class="composer-footer">
+    <span class="composer-hint">Answering is not switched on yet in this build.</span>
+    <button type="submit" class="send" disabled title="Answering is not available yet">
+      Ask
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+    </button>
+  </div>
+</form>

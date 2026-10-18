@@ -1,57 +1,104 @@
 @import 'tailwindcss';
 
-@theme {
-  --color-paper: #efe8da;
-  --color-paper-deep: #e3dac7;
-  --color-ink: #1d1a15;
-  --color-ink-soft: #5b5446;
-  --color-rule: #cbbfa6;
-  --color-margin: #c7563f;
-  --color-accent: #1e5a43;
-  --color-signal-ok: #2b7a4b;
-  --color-signal-warn: #b7701c;
-  --color-signal-off: #9b3426;
+:root {
+  color-scheme: light;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-sunken: #eef1f5;
+  --border: #dde2e9;
+  --border-strong: #c3cbd6;
+  --text: #151a21;
+  --text-muted: #566070;
+  --text-subtle: #7a8494;
+  --accent: #1f5bd6;
+  --accent-hover: #1a4ebb;
+  --accent-soft: #e8effd;
+  --accent-contrast: #ffffff;
+  --ok: #17784a;
+  --ok-soft: #e3f3ea;
+  --warn: #9a5800;
+  --warn-soft: #fbefdb;
+  --danger: #b8352b;
+  --danger-soft: #fbe8e6;
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-md: 0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px -6px rgb(16 24 40 / 0.12);
+  --wash: radial-gradient(60rem 30rem at 85% -10%, #dfe8fb 0%, transparent 60%);
 
-  --font-display: 'Gloock', 'Times New Roman', serif;
-  --font-sans: 'Schibsted Grotesk', ui-sans-serif, sans-serif;
-  --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0d1015;
+    --surface: #151920;
+    --surface-sunken: #1b2029;
+    --border: #262c36;
+    --border-strong: #343c49;
+    --text: #e6e9ee;
+    --text-muted: #a1aab7;
+    --text-subtle: #7c8696;
+    --accent: #6e9dff;
+    --accent-hover: #8cb1ff;
+    --accent-soft: #1a2945;
+    --accent-contrast: #0a1222;
+    --ok: #4cc48a;
+    --ok-soft: #12301f;
+    --warn: #f0b45c;
+    --warn-soft: #362810;
+    --danger: #ff7c70;
+    --danger-soft: #3b1916;
+    --shadow-sm: none;
+    --shadow-md: 0 8px 28px -8px rgb(0 0 0 / 0.6);
+    --wash: radial-gradient(60rem 30rem at 85% -10%, #15213a 0%, transparent 60%);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0d1015;
+  --surface: #151920;
+  --surface-sunken: #1b2029;
+  --border: #262c36;
+  --border-strong: #343c49;
+  --text: #e6e9ee;
+  --text-muted: #a1aab7;
+  --text-subtle: #7c8696;
+  --accent: #6e9dff;
+  --accent-hover: #8cb1ff;
+  --accent-soft: #1a2945;
+  --accent-contrast: #0a1222;
+  --ok: #4cc48a;
+  --ok-soft: #12301f;
+  --warn: #f0b45c;
+  --warn-soft: #362810;
+  --danger: #ff7c70;
+  --danger-soft: #3b1916;
+  --shadow-sm: none;
+  --shadow-md: 0 8px 28px -8px rgb(0 0 0 / 0.6);
+  --wash: radial-gradient(60rem 30rem at 85% -10%, #15213a 0%, transparent 60%);
 }
 
 html {
-  background-color: var(--color-paper);
-  color: var(--color-ink);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-sans);
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Ledger paper: faint ruled lines, a margin rule and a little grain. */
 body {
   min-height: 100dvh;
-  background-color: var(--color-paper);
-  background-image:
-    linear-gradient(
-      to right,
-      transparent calc(2.75rem - 1px),
-      color-mix(in oklab, var(--color-margin) 45%, transparent) calc(2.75rem - 1px),
-      color-mix(in oklab, var(--color-margin) 45%, transparent) 2.75rem,
-      transparent 2.75rem
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0 31px,
-      color-mix(in oklab, var(--color-rule) 40%, transparent) 31px 32px
-    ),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  background: var(--wash), var(--bg);
+  background-attachment: fixed;
 }
 
-@media (max-width: 639px) {
-  body {
-    background-image:
-      repeating-linear-gradient(
-        to bottom,
-        transparent 0 31px,
-        color-mix(in oklab, var(--color-rule) 40%, transparent) 31px 32px
-      ),
-      none;
-  }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
 }
