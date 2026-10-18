@@ -1,0 +1,66 @@
+@if (style().label; as label) {
+  <p class="reply-label" data-testid="reply-label">{{ label }}</p>
+}
+<p class="reply-message">
+  @for (segment of segments(); track $index) {
+    @if ('marker' in segment) {
+      <a
+        class="marker"
+        data-testid="marker"
+        [href]="'#' + cardId(segment.marker)"
+        [attr.aria-label]="'Citation ' + segment.marker"
+        (click)="expand(segment.marker)"
+        >{{ segment.marker }}</a
+      >
+    } @else {
+      <span>{{ segment.text }}</span>
+    }
+  }
+</p>
+@if (style().nextStep; as nextStep) {
+  <p class="next-step" data-testid="next-step">{{ nextStep }}</p>
+}
+@if (reply().citations.length > 0) {
+  <p class="sources-label">Citations</p>
+  <ol class="sources">
+    @for (citation of reply().citations; track $index) {
+      @let n = $index + 1;
+      @let open = expanded().has(n);
+      <li class="card" data-testid="source-card" [id]="cardId(n)">
+        <button
+          type="button"
+          class="card-head"
+          data-testid="toggle-snippet"
+          [attr.aria-expanded]="open"
+          [attr.aria-controls]="cardId(n) + '-snippet'"
+          (click)="toggle(n)"
+        >
+          <span class="card-number">{{ n }}</span>
+          <span class="card-text">
+            <span class="card-title">
+              {{ citation.title }}
+              @if (citation.status === 'superseded') {
+                <span class="badge-superseded" data-testid="superseded">Superseded</span>
+              }
+            </span>
+            <span class="card-meta"
+              >{{ citation.document_id }} · {{ citation.document_version }} ·
+              {{ citation.section }} · {{ location(citation) }}</span
+            >
+          </span>
+          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+        @if (open) {
+          <blockquote
+            class="snippet"
+            data-testid="snippet"
+            [id]="cardId(n) + '-snippet'"
+            [textContent]="citation.snippet"
+          ></blockquote>
+        }
+      </li>
+    }
+  </ol>
+}

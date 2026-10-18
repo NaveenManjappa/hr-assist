@@ -1,0 +1,88 @@
+# Corpus Manifest: the Source Documents HR Assist answers from (see ADR 0001).
+# Only files listed here are ingested. Paths are relative to the repo root.
+
+- path: data/policies/01_Northstar_Employee_Handbook_v2.0.pdf
+  document_id: NDS-HR-HB-001
+  document_version: v2.0
+  title: Employee Handbook
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/02_Leave_and_Absence_Standard_v1.2.pdf
+  document_id: NDS-HR-LAS-002
+  document_version: v1.2
+  title: Leave and Absence Standard
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/03_Expenses_and_Business_Travel_Policy_v1.1.pdf
+  document_id: NDS-FIN-EXP-003
+  document_version: v1.1
+  title: Expenses and Business Travel Policy
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/04_IT_Security_Data_Protection_and_GenAI_Policy_v2.0.pdf
+  document_id: NDS-SEC-ITG-004
+  document_version: v2.0
+  title: IT Security, Data Protection and Generative AI Policy
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/05_Hybrid_and_Flexible_Working_Standard_v1.1.pdf
+  document_id: NDS-HR-HFW-005
+  document_version: v1.1
+  title: Hybrid and Flexible Working Standard
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+# Effective Period from NDS-HR-LAS-002 §1.3: superseded by the Leave and Absence Standard.
+- path: data/policies/archived/06_ARCHIVED_Superseded_Leave_Policy_v1.0.pdf
+  document_id: NDS-HR-LV-006
+  document_version: v1.0
+  title: Leave Policy
+  kind: policy_document
+  status: superseded
+  effective_from: 2025-01-01
+  effective_to: 2026-09-30
+  superseded_by: NDS-HR-LAS-002
+
+# Summary Decks: one chunk per slide, speaker notes included. Policy Documents prevail over them.
+# The Manager Briefing was presented in September 2026, but it describes the rules in force from
+# 1 October 2026, so its Effective Period starts then.
+- path: data/policies/11_Policy_Changes_Oct2026_Manager_Briefing.pptx
+  document_id: NDS-HR-PRES-011
+  document_version: v1.0
+  title: "What changes on 1 October 2026: Manager Briefing"
+  kind: summary_deck
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/12_New_Starter_Induction_First_Six_Months.pptx
+  document_id: NDS-HR-PRES-012
+  document_version: v1.0
+  title: "Your first six months at Northstar: New Starter Induction"
+  kind: summary_deck
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/13_Responsible_GenAI_Training_2026.pptx
+  document_id: NDS-SEC-PRES-013
+  document_version: v1.0
+  title: Responsible Use of Generative AI Training 2026/27
+  kind: summary_deck
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null

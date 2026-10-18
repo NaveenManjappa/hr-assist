@@ -1,0 +1,30 @@
+<form class="composer" (submit)="$event.preventDefault(); submit()">
+  <div class="as-of">
+    <label for="as-of-date">Answering as of</label>
+    <input
+      id="as-of-date"
+      #asOf
+      type="date"
+      required
+      [value]="asOfDate()"
+      (change)="changeAsOfDate(asOf.value)"
+    />
+  </div>
+  <label class="sr-only" for="question">Your question</label>
+  <textarea
+    id="question"
+    #question
+    rows="2"
+    placeholder="Ask about leave, sickness, expenses, hybrid working…"
+    [value]="draft()"
+    (input)="draft.set(question.value)"
+    (keydown.enter)="submitOnEnter($event)"
+  ></textarea>
+  <div class="composer-footer">
+    <span class="composer-hint">Enter to ask · Shift+Enter for a new line</span>
+    <button type="submit" class="send" [disabled]="busy() || !draft().trim()">
+      Ask
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+    </button>
+  </div>
+</form>

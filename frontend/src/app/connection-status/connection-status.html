@@ -1,0 +1,34 @@
+<div class="status" data-testid="connection-status" [attr.data-state]="state()">
+  <button
+    type="button"
+    class="pill"
+    aria-controls="connection-details"
+    [attr.aria-expanded]="open()"
+    (click)="open.set(!open())"
+  >
+    <span class="dot" aria-hidden="true"></span>
+    <span class="label" aria-live="polite">{{ view().label }}</span>
+    <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+  </button>
+
+  @if (open()) {
+    <div id="connection-details" class="panel" role="region" aria-label="Service status">
+      <p class="panel-title">Service status</p>
+      <ul class="services">
+        <li [attr.data-service]="view().api">
+          <span class="service-dot" aria-hidden="true"></span>
+          <span class="service-name">HR Assist API</span>
+          <span class="service-state">{{ serviceLabels[view().api] }}</span>
+        </li>
+        <li [attr.data-service]="view().qdrant">
+          <span class="service-dot" aria-hidden="true"></span>
+          <span class="service-name">Policy index <span class="hint">Qdrant</span></span>
+          <span class="service-state">{{ serviceLabels[view().qdrant] }}</span>
+        </li>
+      </ul>
+      <button type="button" class="recheck" [disabled]="health.isLoading()" (click)="recheck()">
+        {{ health.isLoading() ? 'Checking…' : 'Check again' }}
+      </button>
+    </div>
+  }
+</div>
