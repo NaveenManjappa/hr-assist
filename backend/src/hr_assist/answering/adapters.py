@@ -29,7 +29,7 @@ class QdrantRetriever:
     async def retrieve(self, query: str, k: int) -> list[Chunk]:
         try:
             retriever = self._store.as_retriever(search_kwargs={"k": k})
-            documents = await retriever.ainvoke(query)
+            documents = await retriever.ainvoke(query, config={"run_name": "retrieve"})
         except Exception as exc:
             raise UpstreamError("Searching the policy index failed.") from exc
         return [
@@ -47,11 +47,15 @@ class QdrantRetriever:
 
 class OpenAIChatModel:
     def __init__(self, settings: Settings) -> None:
-        self._model = init_chat_model(
-            settings.chat_model,
-            model_provider="openai",
-            api_key=settings.openai_api_key.get_secret_value(),
-        ).with_structured_output(AssistantReply, include_raw=True)
+        self._model = (
+            init_chat_model(
+                settings.chat_model,
+                model_provider="openai",
+                api_key=settings.openai_api_key.get_secret_value(),
+            )
+            .with_structured_output(AssistantReply, include_raw=True)
+            .with_config(run_name="generate")
+        )
 
     async def generate(self, messages: list[BaseMessage]) -> GeneratedReply:
         try:
