@@ -29,12 +29,20 @@
         @if (turn.role === 'user') {
           <li class="question">{{ turn.content }}</li>
         } @else {
+          @let style = presentation[turn.reply.response_type];
           <li
-            class="reply"
             data-testid="reply"
+            [class]="'reply reply-' + turn.reply.response_type"
             [attr.data-response-type]="turn.reply.response_type"
+            [attr.role]="style.role"
           >
+            @if (style.label; as label) {
+              <p class="reply-label" data-testid="reply-label">{{ label }}</p>
+            }
             <p class="reply-message">{{ turn.reply.message }}</p>
+            @if (style.nextStep; as nextStep) {
+              <p class="next-step" data-testid="next-step">{{ nextStep }}</p>
+            }
             @if (turn.reply.citations.length > 0) {
               <p class="citations-label">Citations</p>
               <ol class="citations">

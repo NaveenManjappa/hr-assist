@@ -117,6 +117,54 @@ h1 {
   box-shadow: var(--shadow-sm);
 }
 
+.reply-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A Clarification reads as a question waiting for the Employee's reply. */
+.reply-clarification {
+  border-color: var(--accent);
+  border-left-width: 3px;
+  background: var(--accent-soft);
+}
+
+.reply-clarification .reply-label {
+  color: var(--accent);
+}
+
+/* An Abstention is muted: nothing went wrong, the Corpus just doesn't cover it. */
+.reply-abstention {
+  background: var(--surface-sunken);
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.reply-abstention .reply-label {
+  color: var(--text-subtle);
+}
+
+/* A Refusal is a neutral notice, deliberately not error red. */
+.reply-refusal {
+  border-color: var(--border-strong);
+  border-left-width: 3px;
+  background: var(--surface-sunken);
+  box-shadow: none;
+}
+
+.reply-refusal .reply-label {
+  color: var(--text-muted);
+}
+
+.next-step {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .reply-message {
   line-height: 1.6;
   white-space: pre-line;

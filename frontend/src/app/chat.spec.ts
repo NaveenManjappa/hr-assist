@@ -179,4 +179,101 @@ describe('Chat page', () => {
     );
     expect(current.querySelector('[data-testid="superseded"]')).toBeNull();
   });
+
+  it('sends only the most recent turns as history', async () => {
+    const { fixture, root } = await renderPage();
+    for (const n of [1, 2, 3]) {
+      await ask(root, `Question ${n}`, fixture);
+      http
+        .expectOne('http://api.test/api/chat')
+        .flush({ response_type: 'answer', message: `Answer ${n}`, citations: [] });
+      await fixture.whenStable();
+    }
+
+    await ask(root, 'Question 4', fixture);
+
+    expect(http.expectOne('http://api.test/api/chat').request.body.messages).toEqual([
+      { role: 'assistant', content: 'Answer 1' },
+      { role: 'user', content: 'Question 2' },
+      { role: 'assistant', content: 'Answer 2' },
+      { role: 'user', content: 'Question 3' },
+      { role: 'assistant', content: 'Answer 3' },
+      { role: 'user', content: 'Question 4' },
+    ]);
+  });
+
+  it('styles a Clarification as a question and moves focus back to the input', async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, 'Can I take leave next month?', fixture);
+    root.querySelector<HTMLButtonElement>('button[type="submit"]')!.focus();
+
+    http.expectOne('http://api.test/api/chat').flush({
+      response_type: 'clarification',
+      message: 'Which kind of leave do you mean: annual leave, sick leave or another type?',
+      citations: [],
+    });
+    await fixture.whenStable();
+
+    const reply = root.querySelector<HTMLElement>('[data-testid="reply"]')!;
+    expect(reply.dataset['responseType']).toBe('clarification');
+    expect(reply.querySelector('[data-testid="reply-label"]')!.textContent!.trim()).toBe(
+      'A question for you',
+    );
+    expect(document.activeElement).toBe(root.querySelector('textarea'));
+  });
+
+  it('shows an Abstention in a muted style that points to People Operations', async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, "What's my leave balance?", fixture);
+
+    http.expectOne('http://api.test/api/chat').flush({
+      response_type: 'abstention',
+      message: 'HR Assist has no access to your leave balance.',
+      citations: [],
+    });
+    await fixture.whenStable();
+
+    const reply = root.querySelector<HTMLElement>('[data-testid="reply"]')!;
+    expect(reply.dataset['responseType']).toBe('abstention');
+    expect(reply.querySelector('[data-testid="reply-label"]')!.textContent!.trim()).toBe(
+      'Not covered by the policies',
+    );
+    expect(reply.querySelector('[data-testid="next-step"]')!.textContent).toContain(
+      'People Operations',
+    );
+    expect(document.activeElement).not.toBe(root.querySelector('textarea'));
+  });
+
+  it('shows a Refusal as a neutral notice rather than an error', async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, 'Why was Tom off sick last week?', fixture);
+
+    http.expectOne('http://api.test/api/chat').flush({
+      response_type: 'refusal',
+      message:
+        "I can't share a colleague's health information. You can ask how sickness absence is reported instead.",
+      citations: [],
+    });
+    await fixture.whenStable();
+
+    const reply = root.querySelector<HTMLElement>('[data-testid="reply"]')!;
+    expect(reply.dataset['responseType']).toBe('refusal');
+    expect(reply.getAttribute('role')).toBe('note');
+    expect(reply.querySelector('[data-testid="reply-label"]')!.textContent!.trim()).toBe(
+      "HR Assist can't help with this",
+    );
+    expect(root.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('gives an Answer no Response Type label', async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, QUESTION, fixture);
+
+    http
+      .expectOne('http://api.test/api/chat')
+      .flush({ response_type: 'answer', message: '27 days.', citations: [] });
+    await fixture.whenStable();
+
+    expect(root.querySelector('[data-testid="reply-label"]')).toBeNull();
+  });
 });

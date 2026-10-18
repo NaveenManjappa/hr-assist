@@ -1,6 +1,6 @@
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 
-import { ChatStore, Citation } from '../chat-store';
+import { ChatStore, Citation, ResponseType } from '../chat-store';
 import { Composer } from '../composer/composer';
 
 @Component({
@@ -23,7 +23,33 @@ export class Conversation {
     { topic: 'Hybrid working', question: 'How many days a week can I work from home?' },
   ];
 
+  protected readonly presentation: Record<
+    ResponseType,
+    { label: string | null; role: string | null; nextStep: string | null }
+  > = {
+    answer: { label: null, role: null, nextStep: null },
+    clarification: { label: 'A question for you', role: null, nextStep: null },
+    abstention: {
+      label: 'Not covered by the policies',
+      role: null,
+      nextStep:
+        "People Operations can help with questions the policies don't cover or that need your own records.",
+    },
+    refusal: { label: "HR Assist can't help with this", role: 'note', nextStep: null },
+  };
+
   private readonly body = viewChild.required<ElementRef<HTMLElement>>('body');
+  private readonly composer = viewChild.required(Composer);
+
+  constructor() {
+    // A Clarification expects a reply, so the input is made ready for it.
+    effect(() => {
+      const last = this.chat.turns().at(-1);
+      if (last?.role === 'assistant' && last.reply.response_type === 'clarification') {
+        this.composer().focus();
+      }
+    });
+  }
 
   protected ask(question: string): void {
     this.chat.ask(question);
