@@ -1,6 +1,15 @@
 # Corpus Manifest: the Source Documents HR Assist answers from (see ADR 0001).
 # Only files listed here are ingested. Paths are relative to the repo root.
 
+- path: data/policies/01_Northstar_Employee_Handbook_v2.0.pdf
+  document_id: NDS-HR-HB-001
+  document_version: v2.0
+  title: Employee Handbook
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
 - path: data/policies/02_Leave_and_Absence_Standard_v1.2.pdf
   document_id: NDS-HR-LAS-002
   document_version: v1.2
@@ -9,3 +18,41 @@
   status: current
   effective_from: 2026-10-01
   effective_to: null
+
+- path: data/policies/03_Expenses_and_Business_Travel_Policy_v1.1.pdf
+  document_id: NDS-FIN-EXP-003
+  document_version: v1.1
+  title: Expenses and Business Travel Policy
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/04_IT_Security_Data_Protection_and_GenAI_Policy_v2.0.pdf
+  document_id: NDS-SEC-ITG-004
+  document_version: v2.0
+  title: IT Security, Data Protection and Generative AI Policy
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+- path: data/policies/05_Hybrid_and_Flexible_Working_Standard_v1.1.pdf
+  document_id: NDS-HR-HFW-005
+  document_version: v1.1
+  title: Hybrid and Flexible Working Standard
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null
+
+# Effective Period from NDS-HR-LAS-002 §1.3: superseded by the Leave and Absence Standard.
+- path: data/policies/archived/06_ARCHIVED_Superseded_Leave_Policy_v1.0.pdf
+  document_id: NDS-HR-LV-006
+  document_version: v1.0
+  title: Leave Policy
+  kind: policy_document
+  status: superseded
+  effective_from: 2025-01-01
+  effective_to: 2026-09-30
+  superseded_by: NDS-HR-LAS-002

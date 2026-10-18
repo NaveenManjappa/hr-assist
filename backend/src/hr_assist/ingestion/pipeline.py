@@ -1,6 +1,6 @@
 from hr_assist.corpus import Chunk, ManifestEntry
 from hr_assist.ingestion.chunking import ChunkingStrategy, StructureV1
-from hr_assist.ingestion.normaliser import normalise
+from hr_assist.ingestion.normaliser import check_running_header, normalise
 from hr_assist.ingestion.parser import Parser, PdfParser
 
 
@@ -14,5 +14,7 @@ def build_chunks(
     strategy = strategy or StructureV1()
     chunks: list[Chunk] = []
     for entry in entries:
-        chunks.extend(strategy.chunk(entry, normalise(parser.parse(entry))))
+        pages = parser.parse(entry)
+        check_running_header(entry, pages)
+        chunks.extend(strategy.chunk(entry, normalise(pages)))
     return chunks

@@ -18,7 +18,7 @@ PPTX ─► python-pptx (one unit per slide, notes included) ──────�
 1. **Load** each PDF page as Markdown, keeping its page number.
 2. **Normalise**: strip the running header (`Leave and Absence Standard | NDS-HR-LAS-002 | v1.2`, `**Northstar Digital Services Ltd.**`) and footer (`Internal · Current · …`, `Page 5 of 15`).
 3. **Split by numbered section**: a new section starts at each Markdown heading that begins with a section number (`3`, `3.1`, `3.10`). The section path comes from the number (`3.1` sits under `3`), not from the heading level. Unnumbered headings, such as worked examples, stay inside the section they belong to. Lines are read page by page, so a section that crosses a page break gets the right `page_start` and `page_end`. Everything before the first numbered section is dropped, which removes the cover, document control and contents pages.
-4. **Split oversized sections** with `RecursiveCharacterTextSplitter` (~500 tokens, ~60 overlap), keeping tables and worked examples whole where possible.
+4. **Split oversized sections** (~500 tokens, ~60 overlap) into parts made of whole paragraphs and tables. A table is never split, and a heading or table caption stays with the block after it, so a part holding a long table can exceed the limit. Only a paragraph that alone exceeds the limit goes through `RecursiveCharacterTextSplitter`. Each part carries the pages its own text sits on.
 5. **Decks**: one chunk per slide, containing the title, body text, tables rendered as Markdown, and speaker notes. The notes hold policy content that isn't on the slide.
 
 The loader and the chunker sit behind our own `Parser` and `ChunkingStrategy` interfaces. The chunking config is versioned (`structure_v1`), and that version is part of the Qdrant collection name.
@@ -109,4 +109,5 @@ Its metadata:
 - `pymupdf4llm` is AGPL-3.0. That's acceptable for a public portfolio repo, but would need revisiting for closed-source use.
 - It pulls in `onnxruntime` and a layout model (~60 MB). Ingestion is an offline CLI step, so the deployed API doesn't carry this weight.
 - Changing the chunking means a new `chunking_version` and a new collection, and the old collection stays available for comparison.
-- `structure_v1` splits an oversized section with the plain recursive splitter, so a long table can still be cut, and every part carries the whole section's page range. We'll tighten this if evals show it matters.
+- Keeping tables whole means some chunks run past ~500 tokens (the longest, handbook Appendix tables, is about 900). That is well inside the embedding model's input limit.
+- Ingestion fails if a PDF's running header names a different Document ID or Version from its manifest entry, or has no running header.
