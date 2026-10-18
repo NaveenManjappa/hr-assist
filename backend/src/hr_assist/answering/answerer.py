@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from datetime import date
 from typing import Protocol
@@ -13,6 +14,9 @@ from hr_assist.corpus import Chunk
 RETRIEVAL_K = 8
 HISTORY_TURNS = 6
 SNIPPET_CHARS = 600
+
+# A marker such as [2] or [1, 3], with the space before it so a dropped marker leaves none.
+_MARKER = re.compile(r"(\s?)\[(\d+(?:\s*,\s*\d+)*)\]")
 
 logger = logging.getLogger("hr_assist.chat")
 
@@ -50,17 +54,31 @@ class Answerer:
             [c.id for c in chunks],
             generated.token_usage,
         )
+        message, cited = _renumber(reply.message, reply.cited_sources, len(chunks))
         return ChatResponse(
             response_type=reply.response_type,
-            message=reply.message,
-            citations=_citations(reply.cited_sources, chunks),
+            message=message,
+            citations=[_citation(chunks[n - 1]) for n in cited],
         )
 
 
-def _citations(cited_sources: list[int], chunks: list[Chunk]) -> list[Citation]:
-    """Builds Citations from the metadata of the chunks the model cited by number."""
-    numbers = dict.fromkeys(n for n in cited_sources if 1 <= n <= len(chunks))
-    return [_citation(chunks[n - 1]) for n in numbers]
+def _renumber(message: str, cited_sources: list[int], source_count: int) -> tuple[str, list[int]]:
+    """Orders the cited sources by their first inline marker, then renumbers the markers to match.
+
+    Sources cited without a marker follow the marked ones, and markers that point at no
+    retrieved source are dropped.
+    """
+    valid = range(1, source_count + 1)
+    marked = [int(n) for _, group in _MARKER.findall(message) for n in group.split(",")]
+    cited = list(dict.fromkeys(n for n in [*marked, *cited_sources] if n in valid))
+    position = {source: index for index, source in enumerate(cited, start=1)}
+
+    def replace(match: re.Match[str]) -> str:
+        numbers = [int(n) for n in match.group(2).split(",") if int(n) in valid]
+        markers = "".join(f"[{position[n]}]" for n in dict.fromkeys(numbers))
+        return match.group(1) + markers if markers else ""
+
+    return _MARKER.sub(replace, message), cited
 
 
 def _citation(chunk: Chunk) -> Citation:

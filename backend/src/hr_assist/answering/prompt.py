@@ -5,7 +5,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from hr_assist.answering.models import ChatMessage
 from hr_assist.corpus import Chunk, ChunkMetadata
 
-PROMPT_VERSION = "v4"
+PROMPT_VERSION = "v5"
 
 _KIND_LABELS = {
     "policy_document": "Policy Document",
@@ -35,8 +35,10 @@ Policy Documents disagree, apply the Precedence Order set out in the Employee Ha
 
 Choose one response_type:
 - answer: the sources answer the question. Give figures exactly as the sources state them. \
-List the numbers of the sources you relied on in cited_sources. Do not write source numbers \
-or document references in the message itself.
+List the numbers of the sources you relied on in cited_sources. Mark each statement with the \
+number of the source it rests on, in square brackets right after the statement, such as [2]; \
+give each source its own brackets, such as [1][3]. Write no other document references in the \
+message.
 - clarification: the question has several reasonable readings that lead to different answers. \
 Ask one short question to find out which applies. When one rule or table in the sources \
 covers every reading, answer instead and give the figure for each case. When the Employee's \

@@ -12,7 +12,12 @@ class AssistantReply(BaseModel):
     """The structured output the chat model must return."""
 
     response_type: ResponseType = Field(description="The kind of reply, chosen by the rules.")
-    message: str = Field(description="The reply shown to the Employee, in plain English.")
+    message: str = Field(
+        description=(
+            "The reply shown to the Employee, in plain English. In an answer, each statement "
+            "ends with the bracketed number of the source it rests on, such as [2]."
+        )
+    )
     cited_sources: list[int] = Field(
         default_factory=list,
         description="Numbers of the sources the message relies on. Empty unless answering.",

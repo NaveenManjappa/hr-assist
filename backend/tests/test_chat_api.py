@@ -123,6 +123,43 @@ def test_citations_come_only_from_retrieved_chunk_metadata(settings: Settings) -
     ]
 
 
+def test_inline_markers_are_renumbered_to_match_the_citations(settings: Settings) -> None:
+    reply = AssistantReply(
+        response_type="answer",
+        message=(
+            "You receive 27 days [2]. Leave accrues monthly [1][2], "
+            "and the deck agrees [7]. Notice is set out separately [1, 2]."
+        ),
+        cited_sources=[1, 2],
+    )
+
+    body = chat(settings, reply, ask()).json()
+
+    assert body["message"] == (
+        "You receive 27 days [1]. Leave accrues monthly [2][1], "
+        "and the deck agrees. Notice is set out separately [2][1]."
+    )
+    assert [c["section"] for c in body["citations"]] == [
+        "3.1 Entitlement",
+        "3.2 Accrual and booking",
+    ]
+
+
+def test_the_prompt_asks_for_inline_markers(settings: Settings) -> None:
+    chat_model = FakeChatModel(AssistantReply(response_type="answer", message="27 days."))
+    app = create_app(
+        settings,
+        vector_store=FakeVectorStore(),
+        retriever=FakeRetriever([ENTITLEMENT]),
+        chat_model=chat_model,
+    )
+
+    TestClient(app).post("/api/chat", json=ask())
+
+    system = str(chat_model.prompts[0][0].content)
+    assert "Mark each statement with the number of the source it rests on" in system
+
+
 def test_retrieval_uses_the_latest_question_and_the_top_8_chunks(settings: Settings) -> None:
     retriever = FakeRetriever([ENTITLEMENT])
     body = {

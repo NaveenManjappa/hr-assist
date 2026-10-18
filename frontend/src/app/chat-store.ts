@@ -26,6 +26,11 @@ export interface ChatReply {
 
 export type Turn = { role: 'user'; content: string } | { role: 'assistant'; reply: ChatReply };
 
+interface ChatRequest {
+  messages: { role: 'user' | 'assistant'; content: string }[];
+  as_of_date: string;
+}
+
 const HISTORY_TURNS = 6;
 
 @Injectable({ providedIn: 'root' })
@@ -43,15 +48,14 @@ export class ChatStore {
     return last?.role === 'assistant' ? last.reply.citations : [];
   });
 
+  private failedRequest: ChatRequest | null = null;
+
   ask(question: string): void {
     const content = question.trim();
     if (!content || this.pending()) return;
 
     this.turns.update((turns) => [...turns, { role: 'user', content }]);
-    this.pending.set(true);
-    this.error.set(null);
-
-    const body = {
+    this.send({
       messages: this.turns()
         .slice(-HISTORY_TURNS)
         .map((turn) =>
@@ -60,7 +64,18 @@ export class ChatStore {
             : { role: 'assistant', content: turn.reply.message },
         ),
       as_of_date: this.asOfDate(),
-    };
+    });
+  }
+
+  /** Resends the request that failed, so the Employee doesn't have to retype it. */
+  retry(): void {
+    if (this.failedRequest && !this.pending()) this.send(this.failedRequest);
+  }
+
+  private send(body: ChatRequest): void {
+    this.pending.set(true);
+    this.error.set(null);
+    this.failedRequest = null;
 
     this.http.post<ChatReply>(`${this.baseUrl}/api/chat`, body).subscribe({
       next: (reply) => {
@@ -68,6 +83,7 @@ export class ChatStore {
         this.pending.set(false);
       },
       error: (err: HttpErrorResponse) => {
+        this.failedRequest = body;
         this.error.set(err.error?.error?.message ?? 'HR Assist could not be reached.');
         this.pending.set(false);
       },

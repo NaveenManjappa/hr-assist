@@ -8,6 +8,30 @@ import { App } from './app';
 const QUESTION =
   "How many days of annual leave does a full-time employee with less than 3 years' service receive?";
 
+const ENTITLEMENT = {
+  document_id: 'NDS-HR-LAS-002',
+  document_version: 'v1.2',
+  title: 'Leave and Absence Standard',
+  section: '3.1 Entitlement',
+  page_start: 5,
+  page_end: 5,
+  slide: null,
+  snippet: '|Less than 3 years|27|8|35|262.5|',
+  status: 'current',
+};
+
+const BRIEFING = {
+  document_id: 'NDS-HR-PRES-011',
+  document_version: 'v1.0',
+  title: 'What changes on 1 October 2026: Manager Briefing',
+  section: 'Annual leave: what changed',
+  page_start: null,
+  page_end: null,
+  slide: 2,
+  snippet: "27 days' annual leave for full-time staff",
+  status: 'current',
+};
+
 describe('Chat page', () => {
   let http: HttpTestingController;
 
@@ -50,7 +74,7 @@ describe('Chat page', () => {
     await fixture.whenStable();
   }
 
-  it('sends the question with the As-Of Date and renders the reply with its Citations', async () => {
+  it('sends the question with the As-Of Date and renders the reply with a source card per Citation', async () => {
     const { fixture, root } = await renderPage();
 
     await ask(root, QUESTION, fixture);
@@ -68,44 +92,127 @@ describe('Chat page', () => {
       response_type: 'answer',
       message:
         "A full-time employee with less than 3 years' service receives 27 days of annual leave.",
-      citations: [
-        {
-          document_id: 'NDS-HR-LAS-002',
-          document_version: 'v1.2',
-          title: 'Leave and Absence Standard',
-          section: '3.1 Entitlement',
-          page_start: 5,
-          page_end: 5,
-          slide: null,
-          snippet: '|Less than 3 years|27|8|35|262.5|',
-          status: 'current',
-        },
-        {
-          document_id: 'NDS-HR-PRES-011',
-          document_version: 'v1.0',
-          title: 'What changes on 1 October 2026: Manager Briefing',
-          section: 'Annual leave: what changed',
-          page_start: null,
-          page_end: null,
-          slide: 2,
-          snippet: "27 days' annual leave for full-time staff",
-          status: 'current',
-        },
-      ],
+      citations: [ENTITLEMENT, BRIEFING],
     });
     await fixture.whenStable();
 
     const reply = root.querySelector<HTMLElement>('[data-testid="reply"]')!;
     expect(reply.dataset['responseType']).toBe('answer');
     expect(reply.textContent).toContain('receives 27 days of annual leave');
-    const citations = [...reply.querySelectorAll('[data-testid="citation"]')].map((c) =>
-      c.textContent!.replace(/\s+/g, ' ').trim(),
+    const titles = [...reply.querySelectorAll('[data-testid="source-card"] .card-title')].map(
+      (title) => title.textContent!.trim(),
     );
-    expect(citations).toEqual([
-      'Leave and Absence Standard (NDS-HR-LAS-002 v1.2) · §3.1 Entitlement · p.5',
-      'What changes on 1 October 2026: Manager Briefing (NDS-HR-PRES-011 v1.0) · Annual leave: what changed · slide 2',
+    expect(titles).toEqual([
+      'Leave and Absence Standard',
+      'What changes on 1 October 2026: Manager Briefing',
     ]);
     expect(root.querySelector('[data-testid="pending"]')).toBeNull();
+  });
+
+  it('links each inline marker to its numbered source card, which expands to show the snippet', async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, QUESTION, fixture);
+
+    http.expectOne('http://api.test/api/chat').flush({
+      response_type: 'answer',
+      message: 'You receive 27 days of annual leave [1]. Managers were briefed on this [2][1].',
+      citations: [ENTITLEMENT, BRIEFING],
+    });
+    await fixture.whenStable();
+
+    const reply = root.querySelector<HTMLElement>('[data-testid="reply"]')!;
+    const markers = [...reply.querySelectorAll<HTMLAnchorElement>('[data-testid="marker"]')];
+    expect(markers.map((m) => m.textContent!.trim())).toEqual(['1', '2', '1']);
+    expect(reply.querySelector('.reply-message')!.textContent).not.toContain('[');
+
+    const cards = [...reply.querySelectorAll<HTMLElement>('[data-testid="source-card"]')];
+    expect(cards).toHaveLength(2);
+    expect(markers[1].getAttribute('href')).toBe(`#${cards[1].id}`);
+    expect(markers[0].getAttribute('href')).toBe(`#${cards[0].id}`);
+    expect(markers[2].getAttribute('href')).toBe(`#${cards[0].id}`);
+
+    const text = (el: Element) => el.textContent!.replace(/\s+/g, ' ').trim();
+    expect(text(cards[0])).toContain('1 Leave and Absence Standard');
+    expect(text(cards[0])).toContain('NDS-HR-LAS-002 · v1.2 · 3.1 Entitlement · p.5');
+    expect(text(cards[1])).toContain(
+      'NDS-HR-PRES-011 · v1.0 · Annual leave: what changed · slide 2',
+    );
+
+    const toggle = cards[0].querySelector<HTMLButtonElement>('[data-testid="toggle-snippet"]')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(cards[0].querySelector('[data-testid="snippet"]')).toBeNull();
+
+    toggle.click();
+    await fixture.whenStable();
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(cards[0].querySelector('[data-testid="snippet"]')!.textContent).toContain(
+      '|Less than 3 years|27|8|35|262.5|',
+    );
+    expect(cards[1].querySelector('[data-testid="snippet"]')).toBeNull();
+  });
+
+  it('shows a loading indicator while a reply is pending', async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, QUESTION, fixture);
+
+    const pending = root.querySelector<HTMLElement>('[data-testid="pending"]')!;
+    expect(pending.getAttribute('role')).toBe('status');
+    expect(pending.textContent).toContain('Searching the policies');
+    expect(root.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+
+    http
+      .expectOne('http://api.test/api/chat')
+      .flush({ response_type: 'answer', message: '27 days.', citations: [] });
+    await fixture.whenStable();
+
+    expect(root.querySelector('[data-testid="pending"]')).toBeNull();
+  });
+
+  it('shows an error banner when a request fails, and retry resends the same message', async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, QUESTION, fixture);
+
+    const failed = http.expectOne('http://api.test/api/chat');
+    failed.flush(
+      { error: { code: 'upstream_unavailable', message: 'The answering service is unavailable.' } },
+      { status: 503, statusText: 'Service Unavailable' },
+    );
+    await fixture.whenStable();
+
+    const banner = root.querySelector<HTMLElement>('[role="alert"]')!;
+    expect(banner.textContent).toContain('The answering service is unavailable.');
+    expect(root.querySelector('[data-testid="pending"]')).toBeNull();
+
+    banner.querySelector<HTMLButtonElement>('[data-testid="retry"]')!.click();
+    await fixture.whenStable();
+
+    const retried = http.expectOne('http://api.test/api/chat');
+    expect(retried.request.body).toEqual(failed.request.body);
+    expect(root.querySelector('[role="alert"]')).toBeNull();
+    expect(root.querySelector('[data-testid="pending"]')).not.toBeNull();
+
+    retried.flush({ response_type: 'answer', message: '27 days.', citations: [] });
+    await fixture.whenStable();
+
+    expect(root.querySelectorAll('.question')).toHaveLength(1);
+    expect(root.querySelector('[data-testid="reply"]')!.textContent).toContain('27 days.');
+  });
+
+  it('offers example questions on an empty chat, and clicking one sends it', async () => {
+    const { fixture, root } = await renderPage();
+
+    const examples = [...root.querySelectorAll<HTMLButtonElement>('[data-testid="example"]')];
+    expect(examples.length).toBeGreaterThan(0);
+    const question = examples[1].querySelector('.suggestion-text')!.textContent!.trim();
+
+    examples[1].click();
+    await fixture.whenStable();
+
+    expect(http.expectOne('http://api.test/api/chat').request.body.messages).toEqual([
+      { role: 'user', content: question },
+    ]);
+    expect(root.querySelector('[data-testid="example"]')).toBeNull();
   });
 
   it('sends the earlier turns as history with a follow-up question', async () => {
@@ -173,7 +280,7 @@ describe('Chat page', () => {
     });
     await fixture.whenStable();
 
-    const [superseded, current] = root.querySelectorAll('[data-testid="citation"]');
+    const [superseded, current] = root.querySelectorAll('[data-testid="source-card"]');
     expect(superseded.querySelector('[data-testid="superseded"]')!.textContent!.trim()).toBe(
       'Superseded',
     );
