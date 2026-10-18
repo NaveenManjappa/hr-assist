@@ -1,0 +1,63 @@
+<div class="conversation-body" #body>
+  @if (chat.turns().length === 0) {
+    <div class="welcome">
+      <h1>Ask a question about Northstar HR policy</h1>
+      <p class="welcome-lede">
+        Answers come only from Northstar's Policy Documents and Summary Decks. Each one cites the
+        document, version, section and page it relies on, so you can check it yourself.
+      </p>
+
+      <p class="suggestions-label">Try asking</p>
+      <ul class="suggestions">
+        @for (suggestion of suggestions; track suggestion.question) {
+          <li>
+            <button
+              type="button"
+              class="suggestion"
+              (click)="draft.set(suggestion.question); composer.focus()"
+            >
+              <span class="topic">{{ suggestion.topic }}</span>
+              <span class="suggestion-text">{{ suggestion.question }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  } @else {
+    <ol class="turns" aria-label="Conversation">
+      @for (turn of chat.turns(); track $index) {
+        @if (turn.role === 'user') {
+          <li class="question">{{ turn.content }}</li>
+        } @else {
+          <li
+            class="reply"
+            data-testid="reply"
+            [attr.data-response-type]="turn.reply.response_type"
+          >
+            <p class="reply-message">{{ turn.reply.message }}</p>
+            @if (turn.reply.citations.length > 0) {
+              <p class="citations-label">Citations</p>
+              <ol class="citations">
+                @for (citation of turn.reply.citations; track $index) {
+                  <li data-testid="citation">
+                    {{ citation.title }} ({{ citation.document_id }}
+                    {{ citation.document_version }}) · §{{ citation.section }} ·
+                    {{ pages(citation) }}
+                  </li>
+                }
+              </ol>
+            }
+          </li>
+        }
+      }
+      @if (chat.pending()) {
+        <li class="pending" data-testid="pending" aria-live="polite">Searching the policies…</li>
+      }
+    </ol>
+    @if (chat.error(); as error) {
+      <p class="error" role="alert">{{ error }}</p>
+    }
+  }
+</div>
+
+<app-composer #composer [(draft)]="draft" [busy]="chat.pending()" (ask)="ask($event)" />

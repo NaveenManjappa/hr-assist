@@ -1,7 +1,9 @@
 <section class="panel" aria-labelledby="evidence-title">
   <header class="panel-header">
     <h2 id="evidence-title">Evidence</h2>
-    <span class="count">0 sources</span>
+    <span class="count"
+      >{{ citations().length }} {{ citations().length === 1 ? 'citation' : 'citations' }}</span
+    >
   </header>
 
   <p class="intro">

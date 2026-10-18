@@ -18,8 +18,8 @@
           <path d="M3.5 10h17M8 3v4M16 3v4" />
         </svg>
         As of
-        <time [attr.datetime]="asOfDate | date: 'yyyy-MM-dd'">{{
-          asOfDate | date: 'd MMM y'
+        <time [attr.datetime]="asOfDate() | date: 'yyyy-MM-dd'">{{
+          asOfDate() | date: 'd MMM y'
         }}</time>
       </span>
       <app-connection-status />
@@ -29,33 +29,7 @@
 
   <div class="workspace">
     <main class="conversation">
-      <div class="conversation-body">
-        <div class="welcome">
-          <h1>Ask a question about Northstar HR policy</h1>
-          <p class="welcome-lede">
-            Answers come only from Northstar's Policy Documents and Summary Decks. Each one cites
-            the document, version, section and page it relies on, so you can check it yourself.
-          </p>
-
-          <p class="suggestions-label">Try asking</p>
-          <ul class="suggestions">
-            @for (suggestion of suggestions; track suggestion.question) {
-              <li>
-                <button
-                  type="button"
-                  class="suggestion"
-                  (click)="draft.set(suggestion.question); composer.focus()"
-                >
-                  <span class="topic">{{ suggestion.topic }}</span>
-                  <span class="suggestion-text">{{ suggestion.question }}</span>
-                </button>
-              </li>
-            }
-          </ul>
-        </div>
-      </div>
-
-      <app-composer #composer [(draft)]="draft" />
+      <app-conversation />
     </main>
 
     <aside class="evidence">

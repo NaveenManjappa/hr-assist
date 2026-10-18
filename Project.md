@@ -145,26 +145,8 @@ Apply this to chunking, embeddings, vector storage, retrieval, prompting, framew
 
 Where a decision can be measured experimentally, prefer evidence from the application over unsupported assumptions.
 
-## 6. How We Should Work Together
 
-During implementation:
-- Follow clean, maintainable coding practices.
-- Write easy to read and follow code and avoid excessive comments.
-- Use LangChain where it simplifies or standardises RAG components.
-- Introduce LangGraph only when a workflow benefits from explicit graph-based orchestration, state or branching.
-- Avoid unnecessary abstractions, microservices and premature optimisation.
-- Explain unfamiliar code and important framework decisions.
-- Prefer automated tests and reproducible commands over manual assumptions.
-
-At the end of each milestone:
-- Summarise what was built.
-- Provide commands to run and test it.
-- Verify the expected behaviour before proceeding.
-- Update the README and document important architecture decisions.
-- List any known limitations and the next milestone.
-
-
-## 7. Definition of Success
+## 6. Definition of Success
 
 The final project should demonstrate that I can build, deploy, evaluate and improve a real RAG application.
 

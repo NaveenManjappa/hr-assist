@@ -11,13 +11,13 @@ HR policy answers depend on three things that plain text extraction loses: which
 ```
 manifest.yaml ─┐
                ▼
-PDF ──► PyMuPDF4LLMLoader(mode="page") ──► normaliser ──► MarkdownHeaderTextSplitter ──► oversize split ──► embed ──► Qdrant
+PDF ──► PyMuPDF4LLMLoader(mode="page") ──► normaliser ──► numbered-section split ──► oversize split ──► embed ──► Qdrant
 PPTX ─► python-pptx (one unit per slide, notes included) ─────────────────────────────────┘
 ```
 
 1. **Load** each PDF page as Markdown, keeping its page number.
-2. **Normalise**: strip the running header (`Leave and Absence Standard | NDS-HR-LAS-002 | v1.2`, `**Northstar Digital Services Ltd.**`) and the table-of-contents pages, then join the pages with page markers so a section can cross a page break.
-3. **Split by section** with `MarkdownHeaderTextSplitter` on `#`, `##` and `###`. Each chunk gets its section path and its `page_start` and `page_end`.
+2. **Normalise**: strip the running header (`Leave and Absence Standard | NDS-HR-LAS-002 | v1.2`, `**Northstar Digital Services Ltd.**`) and footer (`Internal · Current · …`, `Page 5 of 15`).
+3. **Split by numbered section**: a new section starts at each Markdown heading that begins with a section number (`3`, `3.1`, `3.10`). The section path comes from the number (`3.1` sits under `3`), not from the heading level. Unnumbered headings, such as worked examples, stay inside the section they belong to. Lines are read page by page, so a section that crosses a page break gets the right `page_start` and `page_end`. Everything before the first numbered section is dropped, which removes the cover, document control and contents pages.
 4. **Split oversized sections** with `RecursiveCharacterTextSplitter` (~500 tokens, ~60 overlap), keeping tables and worked examples whole where possible.
 5. **Decks**: one chunk per slide, containing the title, body text, tables rendered as Markdown, and speaker notes. The notes hold policy content that isn't on the slide.
 
@@ -100,6 +100,7 @@ Its metadata:
 
 - **`pypdf` / `PyPDFLoader`**: flattens tables and loses headings. It also lives in `langchain-community`, which is no longer maintained.
 - **`docling`**: better at complex tables, but brings a heavy ML stack and slow startup. It is the fallback if table questions score poorly.
+- **`MarkdownHeaderTextSplitter` on `#`, `##` and `###`**: the first choice, dropped once we saw the real output. The PDFs use heading levels inconsistently (§3.1 is `##` but §3.3 is `#`), so header-based paths come out wrong, and the splitter would separate worked examples (`###`) from the rule they illustrate.
 - **Fixed-size recursive chunking only**: simpler, but splits rules away from their conditions and tables away from their captions. We will compare it against this approach once evals exist.
 - **Metadata from filenames**: brittle, and can't express Effective Periods.
 
@@ -108,3 +109,4 @@ Its metadata:
 - `pymupdf4llm` is AGPL-3.0. That's acceptable for a public portfolio repo, but would need revisiting for closed-source use.
 - It pulls in `onnxruntime` and a layout model (~60 MB). Ingestion is an offline CLI step, so the deployed API doesn't carry this weight.
 - Changing the chunking means a new `chunking_version` and a new collection, and the old collection stays available for comparison.
+- `structure_v1` splits an oversized section with the plain recursive splitter, so a long table can still be cut, and every part carries the whole section's page range. We'll tighten this if evals show it matters.

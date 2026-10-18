@@ -1,4 +1,4 @@
-<form class="composer" (submit)="$event.preventDefault()">
+<form class="composer" (submit)="$event.preventDefault(); submit()">
   <label class="sr-only" for="question">Your question</label>
   <textarea
     id="question"
@@ -7,10 +7,11 @@
     placeholder="Ask about leave, sickness, expenses, hybrid working…"
     [value]="draft()"
     (input)="draft.set(question.value)"
+    (keydown.enter)="submitOnEnter($event)"
   ></textarea>
   <div class="composer-footer">
-    <span class="composer-hint">Answering is not switched on yet in this build.</span>
-    <button type="submit" class="send" disabled title="Answering is not available yet">
+    <span class="composer-hint">Enter to ask · Shift+Enter for a new line</span>
+    <button type="submit" class="send" [disabled]="busy() || !draft().trim()">
       Ask
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
     </button>

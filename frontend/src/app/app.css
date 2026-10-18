@@ -125,90 +125,10 @@
   min-height: calc(100dvh - 56px);
 }
 
-.conversation-body {
-  display: grid;
-  flex: 1;
-  place-items: center;
-  padding: 2.5rem 1rem 1.5rem;
-}
-
 @media (min-width: 1024px) {
   .conversation {
     min-height: 0;
   }
-
-  .conversation-body {
-    overflow: auto;
-  }
-}
-
-.welcome {
-  width: 100%;
-  max-width: 44rem;
-  animation: settle 420ms ease-out both;
-}
-
-h1 {
-  font-size: clamp(1.45rem, 3vw, 1.9rem);
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-}
-
-.welcome-lede {
-  margin-top: 0.75rem;
-  max-width: 38rem;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
-
-.suggestions-label {
-  margin-top: 2rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
-}
-
-.suggestions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: 0.6rem;
-  margin-top: 0.6rem;
-}
-
-.suggestion {
-  display: grid;
-  gap: 0.3rem;
-  width: 100%;
-  height: 100%;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 150ms ease,
-    transform 150ms ease;
-}
-
-.suggestion:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.topic {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--accent);
-}
-
-.suggestion-text {
-  font-size: 0.9rem;
-  line-height: 1.4;
 }
 
 .evidence {
@@ -221,18 +141,5 @@ h1 {
     border-top: 0;
     border-left: 1px solid var(--border);
     overflow: auto;
-  }
-}
-
-@keyframes settle {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .welcome {
-    animation: none;
   }
 }

@@ -1,0 +1,11 @@
+# Corpus Manifest: the Source Documents HR Assist answers from (see ADR 0001).
+# Only files listed here are ingested. Paths are relative to the repo root.
+
+- path: data/policies/02_Leave_and_Absence_Standard_v1.2.pdf
+  document_id: NDS-HR-LAS-002
+  document_version: v1.2
+  title: Leave and Absence Standard
+  kind: policy_document
+  status: current
+  effective_from: 2026-10-01
+  effective_to: null

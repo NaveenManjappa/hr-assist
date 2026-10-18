@@ -5,10 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from hr_assist.api.request_id import request_id_var
-
-
-class UpstreamError(Exception):
-    """A dependency such as Qdrant or OpenAI failed or could not be reached."""
+from hr_assist.errors import UpstreamError
 
 
 def error_response(
