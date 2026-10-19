@@ -136,6 +136,17 @@ uv run uvicorn hr_assist.api.app:create_app --factory --reload
 
 The API listens on <http://localhost:8000>. A request to <http://localhost:8000/api/health> should return `{"status":"ok","api":"up","qdrant":"up"}`.
 
+#### Run the container locally
+
+This is the same image that Cloud Run serves. From the repo root:
+
+```sh
+docker build -f backend/Dockerfile -t hr-assist-api .
+docker run --rm --env-file .env -p 8080:8080 hr-assist-api
+```
+
+The container listens on `PORT`, which defaults to `8080`, so the health check is at <http://localhost:8080/api/health>. The image contains only the runtime dependencies, so run ingestion with `uv` as described above, not in the container. The development frontend calls port 8000. To use it with the container, map that port instead: `-p 8000:8080`.
+
 ### 4. Run the frontend
 
 In a second terminal:
