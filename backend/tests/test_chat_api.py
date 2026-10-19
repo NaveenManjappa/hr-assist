@@ -216,11 +216,49 @@ def test_invalid_requests_get_a_422_in_the_shared_error_format(
     assert response.json()["error"]["code"] == "validation_error"
 
 
-def test_an_upstream_failure_maps_to_503(settings: Settings) -> None:
-    class FailingRetriever(FakeRetriever):
-        async def retrieve(self, query: str, k: int) -> list[Any]:
-            raise UpstreamError("Qdrant timed out")
+def conversation(length: int) -> dict[str, Any]:
+    roles = ["assistant", "user"] if length % 2 == 0 else ["user", "assistant"]
+    return {"messages": [{"role": roles[n % 2], "content": f"turn {n}"} for n in range(length)]}
 
+
+def test_a_conversation_over_20_messages_gets_a_422_and_never_reaches_the_model(
+    settings: Settings,
+) -> None:
+    chat_model = FakeChatModel(AssistantReply(response_type="answer", message="-"))
+    app = create_app(
+        settings,
+        vector_store=FakeVectorStore(),
+        retriever=FakeRetriever([ENTITLEMENT]),
+        chat_model=chat_model,
+    )
+
+    response = TestClient(app).post("/api/chat", json=conversation(21))
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
+    assert response.json()["error"]["details"][0]["loc"] == ["body", "messages"]
+    assert chat_model.prompts == []
+
+
+def test_a_conversation_of_20_messages_is_answered(settings: Settings) -> None:
+    reply = AssistantReply(response_type="answer", message="27 days.")
+
+    response = chat(settings, reply, conversation(20))
+
+    assert response.status_code == 200
+
+
+def test_a_message_over_4000_characters_gets_a_422(settings: Settings) -> None:
+    reply = AssistantReply(response_type="answer", message="27 days.")
+
+    at_limit = chat(settings, reply, ask("x" * 4000))
+    over_limit = chat(settings, reply, ask("x" * 4001))
+
+    assert at_limit.status_code == 200
+    assert over_limit.status_code == 422
+
+
+def test_an_upstream_failure_maps_to_503(settings: Settings) -> None:
     response = chat(
         settings,
         AssistantReply(response_type="answer", message="-"),
@@ -230,6 +268,31 @@ def test_an_upstream_failure_maps_to_503(settings: Settings) -> None:
 
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "upstream_unavailable"
+
+
+class FailingRetriever(FakeRetriever):
+    async def retrieve(self, query: str, k: int) -> list[Any]:
+        raise UpstreamError("Qdrant timed out")
+
+
+@pytest.mark.parametrize(
+    ("body", "retriever", "status"),
+    [
+        (ask(), FakeRetriever([ENTITLEMENT]), 200),
+        ({"messages": []}, FakeRetriever([ENTITLEMENT]), 422),
+        (ask(), FailingRetriever([]), 503),
+    ],
+    ids=["answered", "invalid", "upstream-failure"],
+)
+def test_chat_responses_are_never_cached(
+    settings: Settings, body: dict[str, Any], retriever: FakeRetriever, status: int
+) -> None:
+    reply = AssistantReply(response_type="answer", message="27 days.")
+
+    response = chat(settings, reply, body, retriever)
+
+    assert response.status_code == status
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_a_summary_deck_citation_carries_its_slide_instead_of_pages(settings: Settings) -> None:

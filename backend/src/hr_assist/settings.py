@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     app_env: str
     openai_api_key: SecretStr
     chat_model: str = "gpt-6-luna"
+    max_output_tokens: PositiveInt = 800
     embedding_model: str = "text-embedding-3-small"
     chunking_version: str = "structure_v1"
 

@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from hr_assist.answering import Answerer, ChatModel, Retriever
 from hr_assist.answering.adapters import OpenAIChatModel, QdrantRetriever
 from hr_assist.api import chat, health
-from hr_assist.api.errors import register_error_handlers
+from hr_assist.api.errors import InternalErrorMiddleware, register_error_handlers
+from hr_assist.api.no_store import NoStoreMiddleware
 from hr_assist.api.request_id import REQUEST_ID_HEADER, RequestIdMiddleware, configure_logging
 from hr_assist.settings import Settings
 from hr_assist.tracing import configure_tracing
@@ -45,6 +46,7 @@ def create_app(
     app.state.vector_store = vector_store
     app.state.answerer = Answerer(retriever, chat_model)
     register_error_handlers(app)
+    app.add_middleware(InternalErrorMiddleware)
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -53,6 +55,8 @@ def create_app(
         allow_headers=["Content-Type", REQUEST_ID_HEADER],
         expose_headers=[REQUEST_ID_HEADER],
     )
+    # Outermost, so CORS preflight answers are marked too.
+    app.add_middleware(NoStoreMiddleware)
     app.include_router(health.router)
     app.include_router(chat.router)
     return app

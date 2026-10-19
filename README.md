@@ -106,6 +106,7 @@ Fill in `.env` at the repo root. The backend reads it no matter which directory 
 | `QDRANT_URL` | yes | e.g. `https://<cluster-id>.<region>.cloud.qdrant.io:6333` |
 | `QDRANT_API_KEY` | yes | |
 | `CHAT_MODEL` | no | Defaults to `gpt-6-luna` |
+| `MAX_OUTPUT_TOKENS` | no | Caps the length of each reply. Defaults to `800`. |
 | `EMBEDDING_MODEL` | no | Defaults to `text-embedding-3-small`. Changing it means re-ingesting. |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | no | Set `LANGSMITH_TRACING=true` to trace each request. EU accounts also need `LANGSMITH_ENDPOINT`. |
 | `FRONTEND_ORIGIN` | no | The CORS origin. Defaults to `http://localhost:4200`. |
