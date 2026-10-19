@@ -76,6 +76,10 @@ Architecture decision records:
 
 - [ADR 0001: Load PDFs as Markdown, describe documents in a Corpus Manifest, and chunk by section](docs/adr/0001-document-loading-and-chunking.md)
 - [ADR 0002: OpenAI models, wired as two-step RAG without an agent](docs/adr/0002-openai-models-and-two-step-rag.md)
+- [ADR 0003: Run the API on Cloud Run behind a Firebase Hosting rewrite, on a single instance](docs/adr/0003-cloud-run-behind-firebase-hosting.md)
+- [ADR 0004: Deploy from GitHub Actions with a service account key, before moving to Workload Identity Federation](docs/adr/0004-service-account-key-before-wif.md)
+
+How HR Assist is deployed, and why, is explained step by step in the [deployment guide](docs/deployment.md).
 
 ## Running locally
 
