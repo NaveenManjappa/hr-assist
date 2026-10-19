@@ -93,8 +93,6 @@ Why the web page and the API sit on different services:
 
 ## 4. What happens when someone asks a question
 
-_Planned._ The rate-limit step is new in Stage 2. Everything else already exists.
-
 ```mermaid
 sequenceDiagram
     autonumber
@@ -212,7 +210,7 @@ flowchart TB
 
 ## 8. How we stop the demo costing money
 
-_Planned._ The demo is public with no login, and every question costs OpenAI tokens. There are several layers of protection, from the code outwards:
+The demo is public with no login, and every question costs OpenAI tokens. There are several layers of protection, from the code outwards. The in-app layers (request validation, rate limits and the output cap) are live. The OpenAI hard limit and the GCP budget alert are _planned_ and are set up by hand.
 
 ```mermaid
 flowchart LR
@@ -237,7 +235,9 @@ What a request costs: one chat sends about 5,000 input tokens (8 chunks) and ret
 
 **Bots that find the Cloud Run URL.** Cloud Run gives the service a public `https://hr-assist-api-….run.app` address. Firebase Hosting can only forward requests to a publicly reachable service, and Google's docs say that restricting ingress or turning off that URL breaks Firebase rewrites. So someone could call the backend directly and bypass Firebase. This is acceptable for Stage 2 because the limits above live **inside the app**, so every path hits them. The worst a bot can do is use up the day's quota until midnight UTC. A stronger fix, **Firebase App Check**, is planned for Stage 5 (see decision D9).
 
-**Why exactly one instance.** The rate-limit counters live in the instance's memory. With two instances each would count separately, and a visitor could make 20 requests a minute. Capping Cloud Run at one instance keeps the counts correct. Google notes the cap "can be exceeded for a brief period", for example during a deploy, which is fine for a demo. One instance can handle up to 80 requests at once, and our handlers are async, so one is enough. When the instance restarts, the counters reset.
+**Why exactly one instance.** The rate-limit counters live in the instance's memory. With two instances each would count separately, and a visitor could make 20 requests a minute. Capping Cloud Run at one instance keeps the counts correct. Google notes the cap "can be exceeded for a brief period", for example during a deploy, which is fine for a demo. One instance can handle up to 80 requests at once, and our handlers are async, so one is enough. When the instance restarts, the counters reset. The limits are settings (`RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_DAY`, `RATE_LIMIT_GLOBAL_PER_DAY`), and a rejection's `Retry-After` header says how many seconds until the window resets.
+
+**Which IP counts.** The client IP is read from `X-Forwarded-For`, counting `TRUSTED_PROXY_HOPS` entries from the right (default `1`). Each proxy appends the address it received the request from, so entries further left were written by the client and are ignored. Without the header, the socket peer is used.
 
 ## 9. Decision log
 
@@ -341,7 +341,7 @@ Each decision gives the choice, why it suits this project, what else we consider
 
 ## 10. What you do and what's automated
 
-**You do these once.** The setup ticket will come with a step-by-step script, made with the `/wizard` skill.
+**You do these once.** The commands, explanations and checks for every step are in the [one-time setup guide](deployment-setup.md) (ticket #33).
 
 1. Install the `gcloud` and `firebase` command-line tools.
 2. Create the `hr-assist-demo` GCP project on your billing account, and add a **$5 budget alert**.

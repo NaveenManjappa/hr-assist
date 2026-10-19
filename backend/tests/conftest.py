@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest
 from langchain_core.messages import BaseMessage
@@ -76,3 +76,14 @@ def settings() -> Settings:
         qdrant_url="https://qdrant.invalid",
         qdrant_api_key="qdrant-test",
     )
+
+
+class FakeClock:
+    def __init__(self, now: datetime) -> None:
+        self.now = now
+
+    def __call__(self) -> datetime:
+        return self.now
+
+    def advance(self, **delta: float) -> None:
+        self.now += timedelta(**delta)

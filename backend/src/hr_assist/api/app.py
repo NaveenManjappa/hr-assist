@@ -9,6 +9,7 @@ from hr_assist.answering.adapters import OpenAIChatModel, QdrantRetriever
 from hr_assist.api import chat, health
 from hr_assist.api.errors import InternalErrorMiddleware, register_error_handlers
 from hr_assist.api.no_store import NoStoreMiddleware
+from hr_assist.api.rate_limit import Clock, RateLimiter, utc_now
 from hr_assist.api.request_id import REQUEST_ID_HEADER, RequestIdMiddleware, configure_logging
 from hr_assist.settings import Settings
 from hr_assist.tracing import configure_tracing
@@ -20,6 +21,7 @@ def create_app(
     vector_store: VectorStore | None = None,
     retriever: Retriever | None = None,
     chat_model: ChatModel | None = None,
+    clock: Clock = utc_now,
 ) -> FastAPI:
     configure_logging()
     settings = settings or Settings()
@@ -43,8 +45,10 @@ def create_app(
             await cleanup()
 
     app = FastAPI(title="HR Assist", lifespan=lifespan)
+    app.state.settings = settings
     app.state.vector_store = vector_store
     app.state.answerer = Answerer(retriever, chat_model)
+    app.state.rate_limiter = RateLimiter(settings, clock)
     register_error_handlers(app)
     app.add_middleware(InternalErrorMiddleware)
     app.add_middleware(RequestIdMiddleware)

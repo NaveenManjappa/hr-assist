@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from hr_assist.api.rate_limit import RateLimited
 from hr_assist.api.request_id import request_id_var
 from hr_assist.errors import UpstreamError
 
@@ -13,10 +14,15 @@ logger = logging.getLogger("hr_assist.errors")
 
 
 def error_response(
-    status_code: int, code: str, message: str, details: list[dict[str, Any]] | None = None
+    status_code: int,
+    code: str,
+    message: str,
+    details: list[dict[str, Any]] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
+        headers=headers,
         content={
             "error": {
                 "code": code,
@@ -38,6 +44,13 @@ async def _validation_error(_: Request, exc: Exception) -> JSONResponse:
 
 async def _upstream_error(_: Request, exc: Exception) -> JSONResponse:
     return error_response(503, "upstream_unavailable", str(exc))
+
+
+async def _rate_limited(_: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, RateLimited)
+    return error_response(
+        429, "rate_limited", str(exc), headers={"Retry-After": str(exc.retry_after_seconds)}
+    )
 
 
 class InternalErrorMiddleware:
@@ -78,3 +91,4 @@ class InternalErrorMiddleware:
 def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(UpstreamError, _upstream_error)
+    app.add_exception_handler(RateLimited, _rate_limited)

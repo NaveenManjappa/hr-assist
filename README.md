@@ -110,6 +110,10 @@ Fill in `.env` at the repo root. The backend reads it no matter which directory 
 | `EMBEDDING_MODEL` | no | Defaults to `text-embedding-3-small`. Changing it means re-ingesting. |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | no | Set `LANGSMITH_TRACING=true` to trace each request. EU accounts also need `LANGSMITH_ENDPOINT`. |
 | `FRONTEND_ORIGIN` | no | The CORS origin. Defaults to `http://localhost:4200`. |
+| `RATE_LIMIT_PER_MINUTE` | no | Chats each client IP may send in a rolling minute. Defaults to `10`. |
+| `RATE_LIMIT_PER_DAY` | no | Chats each client IP may send per UTC day. Defaults to `100`. |
+| `RATE_LIMIT_GLOBAL_PER_DAY` | no | Chats answered per UTC day across all clients. Defaults to `1000`. |
+| `TRUSTED_PROXY_HOPS` | no | How many `X-Forwarded-For` entries, counted from the right, were added by proxies you trust. The client IP is the leftmost of those. `0` ignores the header and uses the socket peer. Defaults to `1`. |
 
 Leave a variable empty to use its default.
 

@@ -199,6 +199,30 @@ describe('Chat page', () => {
     expect(root.querySelector('[data-testid="reply"]')!.textContent).toContain('27 days.');
   });
 
+  it("shows the backend's message when a chat is rate limited, and offers a retry", async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, QUESTION, fixture);
+
+    http.expectOne('http://api.test/api/chat').flush(
+      {
+        error: {
+          code: 'rate_limited',
+          message: "You're asking questions too quickly. Please wait a minute and try again.",
+          details: [],
+          request_id: 'abc123',
+        },
+      },
+      { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '30' } },
+    );
+    await fixture.whenStable();
+
+    const banner = root.querySelector<HTMLElement>('[role="alert"]')!;
+    expect(banner.textContent).toContain(
+      "You're asking questions too quickly. Please wait a minute and try again.",
+    );
+    expect(banner.querySelector('[data-testid="retry"]')).not.toBeNull();
+  });
+
   it('offers example questions on an empty chat, and clicking one sends it', async () => {
     const { fixture, root } = await renderPage();
 
