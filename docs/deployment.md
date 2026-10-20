@@ -176,7 +176,9 @@ What the Deploy workflow sets on the service, on every deploy:
 
 ## 6. How the Corpus gets into production
 
-_Planned._ Ingestion is slow, costs a little in embeddings and only needs to run when the documents or chunking change, so it is **a button, not part of every deploy**.
+Ingestion is slow, costs a little in embeddings and only needs to run when the documents or chunking change, so it is **a button, not part of every deploy**: the **Ingest (prod)** workflow ([ingest-prod.yml](../.github/workflows/ingest-prod.yml)). It can only be started by hand.
+
+**How to run it.** On GitHub, open **Actions** → **Ingest (prod)** → **Run workflow**, leave the branch as `main`, and click the green **Run workflow** button. From a terminal: `gh workflow run ingest-prod.yml`, then `gh run watch` to follow it. It takes a few minutes.
 
 ```mermaid
 flowchart LR
@@ -188,9 +190,18 @@ flowchart LR
     F --> G[Log: chunk count per document]
 ```
 
-- Prod shares the free Qdrant cluster with dev. The collection name starts with `APP_ENV`, so `prod-…` and `dev-…` never collide.
+**When to run it.**
+
+- **Once before going live.** Until it has run, the `prod-…` collection doesn't exist, and every chat fails with `503 upstream_unavailable` ("Searching the policy index failed."), while `/api/health` still says ok.
+- **Again after changing** `data/manifest.yaml`, the documents or the chunking.
+
+**How to check it worked.** The log ends with one line per Source Document, then `Rebuilt prod-structure_v1-text-embedding-3-small with 405 chunks`. That total matches the local dev collection on 2026-10-20. A different total means the documents or chunking changed, which is only expected if you changed them. Then ask the smoke question in the live app: "How much annual leave do I get after 4 years?"
+
+**Details.**
+
+- Prod shares the free Qdrant cluster with dev. The collection name starts with `APP_ENV`, so `prod-…` and your local `development-…` never collide, and the workflow never touches the dev collection.
+- The OpenAI and Qdrant keys are read from Secret Manager inside the one step that uses them, and masked first, so they never appear in the log. The OpenAI key is the prod project's, so the embedding cost counts against its $10 limit.
 - During the rebuild, which takes about a minute, the live demo may answer badly or fail. That's acceptable for a demo.
-- Run it **once before going live**, and again after changing `data/manifest.yaml`, the documents or the chunking.
 - The PDF and PPTX parsing libraries are only installed in this workflow, never in the serving container. That keeps the container small and cold starts fast.
 
 ## 7. Where the secrets live
@@ -260,7 +271,7 @@ What a request costs: one chat sends about 5,000 input tokens (8 chunks) and ret
 
 Every chat logs the evidence in one line from `hr_assist.rate_limit`: the raw header, the socket peer, the hop count and the client it chose, e.g. `X-Forwarded-For='198.51.100.4' peer=169.254.1.1 hops=1 client=198.51.100.4`. Find them in Cloud Run → `hr-assist-api` → Logs, filtered on `X-Forwarded-For`. This means Cloud Run's logs hold each visitor's IP address, kept for Cloud Logging's default 30 days. The privacy notice already says questions are logged.
 
-**`X-Forwarded-For` on each path.** _To record after the first deploy._ Send one chat through each path from a machine whose public IP you know (`curl -s https://api.ipify.org`), then read the two log lines:
+**`X-Forwarded-For` on each path.** Measured on 2026-10-20, with one chat through each path from a machine whose IP was known. To measure again, for example if Google changes its proxies, send one chat through each path and read the two log lines:
 
 ```sh
 ASK='{"messages":[{"role":"user","content":"How much annual leave do I get?"}]}'
@@ -271,10 +282,14 @@ curl -s -X POST "$RUN_URL/api/chat" -H 'Content-Type: application/json' -d "$ASK
 
 | Path | Raw `X-Forwarded-For` | Position of your IP from the right |
 | --- | --- | --- |
-| Firebase (`web.app`) | _to record_ | _to record_ |
-| Direct (`run.app`) | _to record_ | _to record_ |
+| Firebase (`web.app`) | `<visitor IP>,66.249.93.x` | 2nd. The last entry is a Google proxy, and it changes from request to request. |
+| Direct (`run.app`) | `<visitor IP>` | 1st |
 
-Set `TRUSTED_PROXY_HOPS` to the position of your IP on the Firebase path (`gh variable set TRUSTED_PROXY_HOPS --body <n>`), then rerun Deploy. If the direct path needs a different number, the Firebase setting wins, because it keeps real visitors in separate buckets. On the direct path the limiter then counts whatever entry sits at that position. A caller can forge that entry. So on that path only the global daily cap and the OpenAI hard limit hold. Check both by sending 11 chats in a minute through each URL: the 11th must get a 429.
+So **`TRUSTED_PROXY_HOPS` is `2`**, set as a repo variable. The paths disagree, and the Firebase setting wins, because it keeps real visitors in separate buckets. With `1`, every Firebase visitor would be counted against Google's proxy addresses and share their limits.
+
+On the direct path, an honest caller's header has only one entry. The limiter then falls back to that entry, so honest callers are still counted correctly. A caller who adds a forged entry of their own gets that entry counted instead, and so can dodge the per-IP limits on that path. Only the global daily cap and the OpenAI hard limit hold there, as decision D9 accepts.
+
+To change the setting: `gh variable set TRUSTED_PROXY_HOPS --body <n>`, then rerun the latest Deploy run. Check both by sending 11 chats in a minute through each URL: the 11th must get a 429.
 
 ## 9. Decision log
 
@@ -442,6 +457,7 @@ If your domain's DNS is hosted somewhere other than the registrar, for example b
 | `429 rate_limited` | Per-IP or daily limit reached | Expected under abuse. If real visitors hit it, raise the limits. |
 | Deploy fails at **Build and push the backend image** with `uploadArtifacts denied` | The deploy account can't write to the image repository | [Setup guide: if something goes wrong](deployment-setup.md#if-something-goes-wrong) |
 | Deploy fails with any other `Permission ... denied` | A role from setup step 10 is missing | Run setup step 10's checks; they list all six grants. Fixes made so far are in the [log of fixes](deployment-setup.md#log-of-fixes-made-after-setup) |
+| Every chat returns `503 upstream_unavailable`, "Searching the policy index failed.", but `/api/health` is ok | The prod collection hasn't been built yet | Run **Ingest (prod)** (section 6) |
 | Deploy succeeded but the smoke test failed | Missing secret, wrong env var, or the rewrite isn't deployed | Cloud Run → Revisions → Logs; `firebase.json` rewrites |
 | Custom domain shows a certificate error | Certificate not issued yet, or a conflicting AAAA/CNAME record | Firebase Hosting → domain status; your DNS records |
 | `gcloud iam service-accounts keys create` is refused | Organisation policy blocks keys | Switch to Workload Identity Federation (ADR 0004) |

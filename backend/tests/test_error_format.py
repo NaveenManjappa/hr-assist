@@ -1,8 +1,13 @@
+import logging
+from collections.abc import Iterator
+
+import pytest
 from conftest import FakeVectorStore
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from hr_assist.api import UpstreamError, create_app
+from hr_assist.api.request_id import RequestIdLogFilter
 from hr_assist.settings import Settings
 
 
@@ -16,6 +21,13 @@ def app_with_probe_routes(settings: Settings) -> FastAPI:
     @app.get("/probe/upstream")
     async def upstream() -> None:
         raise UpstreamError("Qdrant timed out")
+
+    @app.get("/probe/upstream-with-cause")
+    async def upstream_with_cause() -> None:
+        try:
+            raise ConnectionError("Collection prod-structure_v1 not found")
+        except ConnectionError as exc:
+            raise UpstreamError("Searching the policy index failed.") from exc
 
     @app.get("/api/probe/crash")
     async def crash() -> None:
@@ -64,3 +76,24 @@ def test_upstream_failures_use_the_shared_format_with_503(settings: Settings) ->
             "request_id": response.headers["x-request-id"],
         }
     }
+
+
+@pytest.fixture
+def app_logs(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
+    app_logger = logging.getLogger("hr_assist")
+    caplog.handler.addFilter(RequestIdLogFilter())
+    app_logger.addHandler(caplog.handler)
+    yield caplog
+    app_logger.removeHandler(caplog.handler)
+
+
+def test_an_upstream_failure_logs_its_cause_but_keeps_it_out_of_the_response(
+    settings: Settings, app_logs: pytest.LogCaptureFixture
+) -> None:
+    response = TestClient(app_with_probe_routes(settings)).get("/probe/upstream-with-cause")
+
+    assert response.json()["error"]["message"] == "Searching the policy index failed."
+    assert "not found" not in response.text
+    [record] = [r for r in app_logs.records if r.levelno == logging.ERROR]
+    assert "Collection prod-structure_v1 not found" in app_logs.text
+    assert record.request_id == response.headers["x-request-id"]  # type: ignore[attr-defined]

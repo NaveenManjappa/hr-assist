@@ -43,6 +43,8 @@ async def _validation_error(_: Request, exc: Exception) -> JSONResponse:
 
 
 async def _upstream_error(_: Request, exc: Exception) -> JSONResponse:
+    # The traceback carries the underlying Qdrant or OpenAI error, which the response hides.
+    logger.error("Upstream failure: %s", exc, exc_info=exc)
     return error_response(503, "upstream_unavailable", str(exc))
 
 
