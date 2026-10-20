@@ -432,12 +432,16 @@ If your domain's DNS is hosted somewhere other than the registrar, for example b
 
 ## 13. Troubleshooting
 
+**Reading a failed run.** Open GitHub → **Actions** → the red **Deploy** run → the step with the red ✗. The real error is usually just above `Process completed with exit code 1`. From a terminal, `gh run view <run-id> --log-failed` prints only the failing step. Once the cause is fixed, rerun the same run with **Re-run failed jobs**, or `gh run rerun <run-id> --failed`. A rerun deploys the same commit, so there's nothing to merge again.
+
 | Symptom | Likely cause | What to check |
 | --- | --- | --- |
 | Page loads, status shows "connecting" for a few seconds | Cold start | Normal. If it lasts more than 30s, check the Cloud Run logs. |
 | `504` from `/api/chat` | The request took over 60s (Firebase's limit) | Slow OpenAI call; look up the request in the logs by `X-Request-ID` |
 | `503 upstream_unavailable` | Qdrant or OpenAI failed, or the OpenAI hard limit was reached | Qdrant cluster status; the OpenAI project's usage page |
 | `429 rate_limited` | Per-IP or daily limit reached | Expected under abuse. If real visitors hit it, raise the limits. |
+| Deploy fails at **Build and push the backend image** with `uploadArtifacts denied` | The deploy account can't write to the image repository | [Setup guide: if something goes wrong](deployment-setup.md#if-something-goes-wrong) |
+| Deploy fails with any other `Permission ... denied` | A role from setup step 10 is missing | Run setup step 10's checks; they list all six grants. Fixes made so far are in the [log of fixes](deployment-setup.md#log-of-fixes-made-after-setup) |
 | Deploy succeeded but the smoke test failed | Missing secret, wrong env var, or the rewrite isn't deployed | Cloud Run → Revisions → Logs; `firebase.json` rewrites |
 | Custom domain shows a certificate error | Certificate not issued yet, or a conflicting AAAA/CNAME record | Firebase Hosting → domain status; your DNS records |
 | `gcloud iam service-accounts keys create` is refused | Organisation policy blocks keys | Switch to Workload Identity Federation (ADR 0004) |

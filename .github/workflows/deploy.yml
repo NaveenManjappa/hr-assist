@@ -68,8 +68,11 @@ jobs:
           serving=$(echo "$service" | jq -r '.status.traffic[] | select(.percent == 100) | .revisionName')
           live=$(gcloud run revisions describe "$serving" --project "$PROJECT_ID" --region "$REGION" \
             --format 'value(spec.containers[0].image)')
+          # Cloud Run records the image by digest, not by tag, so compare against the tag's digest.
+          digest=$(gcloud artifacts docker images describe "$IMAGE" --format 'value(image_summary.digest)')
+          expected="${IMAGE%:*}@$digest"
           echo "Revision $serving serves 100% of traffic with image $live"
-          [ "$live" = "$IMAGE" ] || { echo "::error::Expected $IMAGE"; exit 1; }
+          [ "$live" = "$expected" ] || { echo "::error::Expected $expected ($IMAGE)"; exit 1; }
 
       - uses: actions/setup-node@v7
         with:
