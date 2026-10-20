@@ -32,6 +32,8 @@ const BRIEFING = {
   status: 'current',
 };
 
+const text = (el: Element) => el.textContent!.replace(/\s+/g, ' ').trim();
+
 describe('Chat page', () => {
   let http: HttpTestingController;
 
@@ -73,6 +75,25 @@ describe('Chat page', () => {
     root.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
     await fixture.whenStable();
   }
+
+  it('tells visitors on first load that questions are logged, without blocking a question', async () => {
+    const { fixture, root } = await renderPage();
+
+    const notice = root.querySelector<HTMLElement>('[data-testid="logging-notice"]')!;
+    expect(text(notice)).toBe(
+      "Questions are logged to improve this demo. Don't enter personal information.",
+    );
+
+    await ask(root, QUESTION, fixture);
+
+    http.expectOne('http://api.test/api/chat').flush({
+      response_type: 'answer',
+      message: 'You receive 27 days of annual leave.',
+      citations: [ENTITLEMENT],
+    });
+    await fixture.whenStable();
+    expect(root.querySelector('[data-testid="logging-notice"]')).not.toBeNull();
+  });
 
   it('sends the question with the As-Of Date and renders the reply with a source card per Citation', async () => {
     const { fixture, root } = await renderPage();
@@ -131,7 +152,6 @@ describe('Chat page', () => {
     expect(markers[0].getAttribute('href')).toBe(`#${cards[0].id}`);
     expect(markers[2].getAttribute('href')).toBe(`#${cards[0].id}`);
 
-    const text = (el: Element) => el.textContent!.replace(/\s+/g, ' ').trim();
     expect(text(cards[0])).toContain('1 Leave and Absence Standard');
     expect(text(cards[0])).toContain('NDS-HR-LAS-002 · v1.2 · 3.1 Entitlement · p.5');
     expect(text(cards[1])).toContain(
@@ -197,6 +217,30 @@ describe('Chat page', () => {
 
     expect(root.querySelectorAll('.question')).toHaveLength(1);
     expect(root.querySelector('[data-testid="reply"]')!.textContent).toContain('27 days.');
+  });
+
+  it("shows the backend's message when a chat is rate limited, and offers a retry", async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, QUESTION, fixture);
+
+    http.expectOne('http://api.test/api/chat').flush(
+      {
+        error: {
+          code: 'rate_limited',
+          message: "You're asking questions too quickly. Please wait a minute and try again.",
+          details: [],
+          request_id: 'abc123',
+        },
+      },
+      { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '30' } },
+    );
+    await fixture.whenStable();
+
+    const banner = root.querySelector<HTMLElement>('[role="alert"]')!;
+    expect(banner.textContent).toContain(
+      "You're asking questions too quickly. Please wait a minute and try again.",
+    );
+    expect(banner.querySelector('[data-testid="retry"]')).not.toBeNull();
   });
 
   it('offers example questions on an empty chat, and clicking one sends it', async () => {

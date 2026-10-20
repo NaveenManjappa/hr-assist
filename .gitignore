@@ -12,3 +12,6 @@ wheels/
 
 # macOS
 .DS_Store
+
+# Firebase CLI cache
+.firebase/

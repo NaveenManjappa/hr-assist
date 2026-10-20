@@ -76,6 +76,10 @@ Architecture decision records:
 
 - [ADR 0001: Load PDFs as Markdown, describe documents in a Corpus Manifest, and chunk by section](docs/adr/0001-document-loading-and-chunking.md)
 - [ADR 0002: OpenAI models, wired as two-step RAG without an agent](docs/adr/0002-openai-models-and-two-step-rag.md)
+- [ADR 0003: Run the API on Cloud Run behind a Firebase Hosting rewrite, on a single instance](docs/adr/0003-cloud-run-behind-firebase-hosting.md)
+- [ADR 0004: Deploy from GitHub Actions with a service account key, before moving to Workload Identity Federation](docs/adr/0004-service-account-key-before-wif.md)
+
+How HR Assist is deployed, and why, is explained step by step in the [deployment guide](docs/deployment.md).
 
 ## Running locally
 
@@ -102,9 +106,14 @@ Fill in `.env` at the repo root. The backend reads it no matter which directory 
 | `QDRANT_URL` | yes | e.g. `https://<cluster-id>.<region>.cloud.qdrant.io:6333` |
 | `QDRANT_API_KEY` | yes | |
 | `CHAT_MODEL` | no | Defaults to `gpt-6-luna` |
+| `MAX_OUTPUT_TOKENS` | no | Caps the length of each reply. Defaults to `800`. |
 | `EMBEDDING_MODEL` | no | Defaults to `text-embedding-3-small`. Changing it means re-ingesting. |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | no | Set `LANGSMITH_TRACING=true` to trace each request. EU accounts also need `LANGSMITH_ENDPOINT`. |
 | `FRONTEND_ORIGIN` | no | The CORS origin. Defaults to `http://localhost:4200`. |
+| `RATE_LIMIT_PER_MINUTE` | no | Chats each client IP may send in a rolling minute. Defaults to `10`. |
+| `RATE_LIMIT_PER_DAY` | no | Chats each client IP may send per UTC day. Defaults to `100`. |
+| `RATE_LIMIT_GLOBAL_PER_DAY` | no | Chats answered per UTC day across all clients. Defaults to `1000`. |
+| `TRUSTED_PROXY_HOPS` | no | How many `X-Forwarded-For` entries, counted from the right, were added by proxies you trust. The client IP is the leftmost of those. `0` ignores the header and uses the socket peer. Defaults to `1`. |
 
 Leave a variable empty to use its default.
 
@@ -126,6 +135,17 @@ uv run uvicorn hr_assist.api.app:create_app --factory --reload
 ```
 
 The API listens on <http://localhost:8000>. A request to <http://localhost:8000/api/health> should return `{"status":"ok","api":"up","qdrant":"up"}`.
+
+#### Run the container locally
+
+This is the same image that Cloud Run serves. From the repo root:
+
+```sh
+docker build -f backend/Dockerfile -t hr-assist-api .
+docker run --rm --env-file .env -p 8080:8080 hr-assist-api
+```
+
+The container listens on `PORT`, which defaults to `8080`, so the health check is at <http://localhost:8080/api/health>. The image contains only the runtime dependencies, so run ingestion with `uv` as described above, not in the container. The development frontend calls port 8000. To use it with the container, map that port instead: `-p 8000:8080`.
 
 ### 4. Run the frontend
 

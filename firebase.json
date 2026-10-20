@@ -1,0 +1,20 @@
+{
+  "hosting": {
+    "site": "hr-assist-demo",
+    "public": "frontend/dist/frontend/browser",
+    "ignore": ["firebase.json", "**/.*"],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": { "serviceId": "hr-assist-api", "region": "europe-west1" }
+      },
+      { "source": "**", "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "/index.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      }
+    ]
+  }
+}

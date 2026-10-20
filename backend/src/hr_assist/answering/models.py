@@ -35,7 +35,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    messages: list[ChatMessage] = Field(min_length=1)
+    messages: list[ChatMessage] = Field(min_length=1, max_length=20)
     as_of_date: date | None = None
 
     @model_validator(mode="after")

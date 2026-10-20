@@ -1,0 +1,26 @@
+# The build context is the repo root, but the backend image copies only
+# backend/pyproject.toml, backend/uv.lock and backend/src. Keep the rest out.
+.git
+.github
+.env
+.env.*
+data/
+evals/
+frontend/
+docs/
+scripts/
+test_fixtures/
+backend/tests/
+
+# Caches and local environments
+**/.venv
+**/__pycache__
+**/*.py[oc]
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
+**/node_modules
+**/.DS_Store
+
+# The credentials file the Deploy workflow's auth step writes to the repo root
+gha-creds-*.json

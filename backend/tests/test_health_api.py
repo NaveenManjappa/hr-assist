@@ -32,6 +32,25 @@ def test_health_reports_qdrant_down_without_failing(client_with_qdrant: ClientFa
     assert response.json() == {"status": "degraded", "api": "up", "qdrant": "down"}
 
 
+@pytest.mark.parametrize("reachable", [True, False], ids=["qdrant-up", "qdrant-down"])
+def test_health_responses_are_never_cached(
+    client_with_qdrant: ClientFactory, reachable: bool
+) -> None:
+    response = client_with_qdrant(reachable).get("/api/health")
+
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_cors_preflights_are_never_cached(client_with_qdrant: ClientFactory) -> None:
+    response = client_with_qdrant().options(
+        "/api/chat",
+        headers={"Origin": "http://localhost:4200", "Access-Control-Request-Method": "POST"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_every_response_carries_a_unique_request_id(client_with_qdrant: ClientFactory) -> None:
     client = client_with_qdrant()
 

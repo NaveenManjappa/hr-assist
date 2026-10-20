@@ -17,7 +17,28 @@ def app_with_probe_routes(settings: Settings) -> FastAPI:
     async def upstream() -> None:
         raise UpstreamError("Qdrant timed out")
 
+    @app.get("/api/probe/crash")
+    async def crash() -> None:
+        raise RuntimeError("database password is hunter2")
+
     return app
+
+
+def test_unexpected_failures_use_the_shared_format_with_500(settings: Settings) -> None:
+    client = TestClient(app_with_probe_routes(settings), raise_server_exceptions=False)
+
+    response = client.get("/api/probe/crash")
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": {
+            "code": "internal_error",
+            "message": "Something went wrong. Please try again.",
+            "details": [],
+            "request_id": response.headers["x-request-id"],
+        }
+    }
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_validation_errors_use_the_shared_format_with_422(settings: Settings) -> None:

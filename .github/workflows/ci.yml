@@ -1,5 +1,6 @@
 # Runs the same checks as the README's "Running the tests" on every PR and push to main.
 # The backend tests use fakes for OpenAI and Qdrant, so no secrets are needed.
+# It also builds the backend image (not pushed), so a broken Dockerfile can't be merged.
 name: CI
 
 on:
@@ -32,6 +33,16 @@ jobs:
       - run: uv run ruff format --check
       - run: uv run mypy
       - run: uv run pytest
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the backend image (not pushed)
+        run: docker build -f backend/Dockerfile -t hr-assist-api:ci .
+      - name: Check the app imports with only the runtime dependencies
+        run: docker run --rm hr-assist-api:ci python -c "import hr_assist.api.app"
 
   frontend:
     runs-on: ubuntu-latest

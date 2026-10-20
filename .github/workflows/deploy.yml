@@ -1,0 +1,90 @@
+# Deploys main after CI passes on it: the backend to Cloud Run, then the UI to Firebase Hosting,
+# then a smoke test through the public URL. See docs/deployment.md sections 5 and 7.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # Only a successful CI run for a push to main, never a PR from a branch that happens to be called main.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    # One deploy at a time. A newer merge waits for the running deploy rather than cancelling it.
+    # Set on the job, so runs skipped by the if above never take a waiting deploy's place.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE: hr-assist-api
+      SITE_URL: https://hr-assist-demo.web.app
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/hr-assist/hr-assist-api:${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: google-github-actions/auth@v3.0.0
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v3.0.1
+
+      - name: Build and push the backend image, tagged with the commit SHA
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -f backend/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Deploy the Cloud Run service
+        env:
+          QDRANT_URL: ${{ vars.QDRANT_URL }}
+          TRUSTED_PROXY_HOPS: ${{ vars.TRUSTED_PROXY_HOPS || '1' }}
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --image "$IMAGE" \
+            --service-account "hr-assist-runtime@$PROJECT_ID.iam.gserviceaccount.com" \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 1 \
+            --set-env-vars "APP_ENV=prod,QDRANT_URL=$QDRANT_URL,CHAT_MODEL=gpt-6-luna,EMBEDDING_MODEL=text-embedding-3-small,LANGSMITH_TRACING=true,LANGSMITH_PROJECT=hr-assist-prod,FRONTEND_ORIGIN=$SITE_URL,TRUSTED_PROXY_HOPS=$TRUSTED_PROXY_HOPS" \
+            --set-secrets "OPENAI_API_KEY=openai-api-key:latest,QDRANT_API_KEY=qdrant-api-key:latest,LANGSMITH_API_KEY=langsmith-api-key:latest"
+          # A rollback in the console pins traffic to an old revision. Merging is how we undo it.
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT_ID" --region "$REGION" --to-latest
+
+      - name: Check the revision serving all traffic runs this commit's image
+        run: |
+          service=$(gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" --format json)
+          serving=$(echo "$service" | jq -r '.status.traffic[] | select(.percent == 100) | .revisionName')
+          live=$(gcloud run revisions describe "$serving" --project "$PROJECT_ID" --region "$REGION" \
+            --format 'value(spec.containers[0].image)')
+          echo "Revision $serving serves 100% of traffic with image $live"
+          [ "$live" = "$IMAGE" ] || { echo "::error::Expected $IMAGE"; exit 1; }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build the Angular production bundle
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      # The Firebase CLI logs in with the credentials file the auth step wrote.
+      - name: Deploy Firebase Hosting (live channel, with the /api/** rewrite)
+        run: npx --yes firebase-tools@15.32.1 deploy --only hosting --project "$PROJECT_ID" --non-interactive
+
+      - name: Smoke test through the public URL
+        run: scripts/smoke-test.sh "$SITE_URL" 300
