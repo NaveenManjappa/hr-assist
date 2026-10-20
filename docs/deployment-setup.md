@@ -318,12 +318,30 @@ done
 
 Firebase's documentation also mentions `firebaseauth.admin`. That role is only for preview channels, and we deploy straight to the live channel, so it's left out.
 
-**Check:** this prints the three **project-level** roles: `run.admin`, `firebasehosting.admin` and `serviceusage.apiKeysViewer`. The other three roles are granted on the repository, the runtime account and the two secrets themselves, so they don't appear here. Step 11 tests them for real.
+**Check all six.** Each line should print the role named in its comment. An empty line means that grant didn't take effect, so run its command again. A grant that silently fails here only shows up later, as a failed deploy (see [the log of fixes](#log-of-fixes-made-after-setup)).
 
 ```sh
+# Project level: expect run.admin, firebasehosting.admin and serviceusage.apiKeysViewer
 gcloud projects get-iam-policy $PROJECT_ID \
   --flatten="bindings[].members" \
   --filter="bindings.members:$DEPLOY_SA" --format="value(bindings.role)"
+
+# The image repository: expect roles/artifactregistry.writer
+gcloud artifacts repositories get-iam-policy hr-assist --location=$REGION \
+  --flatten="bindings[].members" \
+  --filter="bindings.members:$DEPLOY_SA" --format="value(bindings.role)"
+
+# The runtime account: expect roles/iam.serviceAccountUser
+gcloud iam service-accounts get-iam-policy $RUNTIME_SA \
+  --flatten="bindings[].members" \
+  --filter="bindings.members:$DEPLOY_SA" --format="value(bindings.role)"
+
+# The two secrets: expect roles/secretmanager.secretAccessor twice
+for SECRET in openai-api-key qdrant-api-key; do
+  gcloud secrets get-iam-policy $SECRET \
+    --flatten="bindings[].members" \
+    --filter="bindings.members:$DEPLOY_SA" --format="value(bindings.role)"
+done
 ```
 
 ## Step 11: Create the deploy key and store it in GitHub
@@ -431,8 +449,19 @@ gh issue close 33 --repo $REPO
 | `Key creation is not allowed on this service account` | An organisation policy blocks keys | Stop and switch to WIF (ADR 0004) |
 | `firebase: command not found` | npm's global bin folder isn't on your `PATH` | Open a new terminal, or run `npx firebase-tools ...` |
 | `Site ID ... is already taken` | Hosting site IDs are global | Choose another site ID in step 9 |
+| The Deploy workflow fails at **Build and push the backend image** with `Permission 'artifactregistry.repositories.uploadArtifacts' denied` | The deploy account isn't a writer on the `hr-assist` repository: step 10's grant didn't take effect | Run step 10's `artifacts repositories add-iam-policy-binding` command again, check it with step 10's checks, then rerun the failed Deploy run |
+| The Deploy workflow fails at **Deploy Firebase Hosting** with a permission error | Usually `serviceusage.apiKeysViewer` is missing from the deploy account | Run step 10's `apiKeysViewer` command again, then rerun the failed Deploy run |
 | A later deploy fails with `serviceusage.services.use` | The deploy account also needs to "use" the project's services | `gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$DEPLOY_SA" --role=roles/serviceusage.serviceUsageConsumer` |
 | You pasted a key somewhere public | Treat it as leaked | Delete it at its source (GCP IAM, OpenAI, Qdrant or LangSmith) and make a new one. For a GCP key, repeat step 11 |
+
+## Log of fixes made after setup
+
+When something in the cloud is fixed by hand, add a row here: what broke, why, and what was changed. This way the project's real state never drifts away from what this guide says without a record.
+
+| Date | What broke | Cause | What was changed |
+| --- | --- | --- | --- |
+| 2026-10-20 | The first Deploy run (#29) failed at **Build and push the backend image**: `artifactregistry.repositories.uploadArtifacts denied` | Two of step 10's grants never took effect: `artifactregistry.writer` on the `hr-assist` repository, and `serviceusage.apiKeysViewer` on the project. The rest of step 10 was in place. | Both roles granted to `hr-assist-deploy` with step 10's commands, and step 10 now checks all six grants. The failed Deploy run was rerun. |
+| 2026-10-20 | The rerun deployed the backend, then failed at **Check the revision serving all traffic runs this commit's image** | A bug in the workflow, not the cloud: Cloud Run records the image by digest (`…@sha256:…`), and the check compared it with the tag (`…:<commit SHA>`). The live revision did run the right image. | The check now looks up the tag's digest in Artifact Registry and compares digests. The fix went through a PR and deployed itself. |
 
 ## Sources
 
