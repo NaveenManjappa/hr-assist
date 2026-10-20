@@ -1,0 +1,52 @@
+# Rebuilds the prod Qdrant collection from data/manifest.yaml. Started by hand from the
+# Actions tab only. The keys come from Secret Manager, so they never touch a laptop.
+# See docs/deployment.md section 6.
+name: Ingest (prod)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ingest-prod
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: google-github-actions/auth@v3.0.0
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v3.0.1
+
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install the runtime and ingest dependencies
+        run: uv sync --locked --no-dev
+
+      # The keys are read and used in this one step, and masked before anything else runs,
+      # so they're never written to the log or kept for later steps.
+      - name: Rebuild the prod collection
+        env:
+          APP_ENV: prod
+          QDRANT_URL: ${{ vars.QDRANT_URL }}
+        run: |
+          OPENAI_API_KEY=$(gcloud secrets versions access latest --secret openai-api-key --project "$PROJECT_ID")
+          echo "::add-mask::$OPENAI_API_KEY"
+          QDRANT_API_KEY=$(gcloud secrets versions access latest --secret qdrant-api-key --project "$PROJECT_ID")
+          echo "::add-mask::$QDRANT_API_KEY"
+          export OPENAI_API_KEY QDRANT_API_KEY
+          uv run --locked --no-dev hr-assist ingest
