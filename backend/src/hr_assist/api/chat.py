@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Request
 
 from hr_assist.answering import Answerer, ChatRequest, ChatResponse
@@ -5,6 +7,7 @@ from hr_assist.api.rate_limit import RateLimiter
 from hr_assist.settings import Settings
 
 router = APIRouter()
+logger = logging.getLogger("hr_assist.rate_limit")
 
 
 @router.post("/api/chat")
@@ -24,11 +27,10 @@ def client_ip(request: Request) -> str:
     """
     settings: Settings = request.app.state.settings
     hops = settings.trusted_proxy_hops
-    forwarded = [
-        entry.strip()
-        for entry in request.headers.get("x-forwarded-for", "").split(",")
-        if entry.strip()
-    ]
-    if hops > 0 and forwarded:
-        return forwarded[max(len(forwarded) - hops, 0)]
-    return request.client.host if request.client else "unknown"
+    raw = request.headers.get("x-forwarded-for", "")
+    forwarded = [entry.strip() for entry in raw.split(",") if entry.strip()]
+    peer = request.client.host if request.client else "unknown"
+    client = forwarded[max(len(forwarded) - hops, 0)] if hops > 0 and forwarded else peer
+    # The evidence for TRUSTED_PROXY_HOPS on each path to the service (docs/deployment.md section 8).
+    logger.info("X-Forwarded-For=%r peer=%s hops=%d client=%s", raw, peer, hops, client)
+    return client

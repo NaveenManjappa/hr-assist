@@ -201,6 +201,27 @@ def test_a_rejection_is_logged_with_the_limit_hit_and_the_request_id(
     assert record.request_id == rejected.headers["x-request-id"]  # type: ignore[attr-defined]
 
 
+def test_each_chat_logs_the_forwarded_chain_and_the_client_it_counts_against(
+    settings: Settings,
+    clock: FakeClock,
+    chat_model: FakeChatModel,
+    app_logs: pytest.LogCaptureFixture,
+) -> None:
+    client = client_for(settings.model_copy(update={"trusted_proxy_hops": 2}), clock, chat_model)
+    response = ask_from(client, "10.0.0.1, 203.0.113.7, 35.191.0.1")[0]
+
+    [record] = [
+        r
+        for r in app_logs.records
+        if r.name == "hr_assist.rate_limit" and r.levelno == logging.INFO
+    ]
+    message = record.getMessage()
+    assert "X-Forwarded-For='10.0.0.1, 203.0.113.7, 35.191.0.1'" in message
+    assert "peer=testclient" in message
+    assert "client=203.0.113.7" in message
+    assert record.request_id == response.headers["x-request-id"]  # type: ignore[attr-defined]
+
+
 def test_chats_after_midnight_succeed_when_an_ip_was_turned_away_for_the_day(
     client: TestClient, clock: FakeClock
 ) -> None:

@@ -2,7 +2,7 @@
 
 This guide explains how HR Assist runs on the internet, how a new version gets deployed, and why each choice was made. It assumes you have never deployed a web app before.
 
-> **Status: planned.** This guide covers the Stage 2 plan. Each section marked _planned_ becomes real when its ticket lands. Update the guide as the tickets close, so it always describes what is actually running.
+> **Status:** sections 3, 4, 5 and 7 describe what is running: the Deploy workflow ([deploy.yml](../.github/workflows/deploy.yml)) puts every merge to `main` live on <https://hr-assist-demo.web.app>. Sections still marked _planned_ become real when their tickets land. Update the guide as the tickets close, so it always describes what is actually running.
 
 ## Contents
 
@@ -55,8 +55,6 @@ Deploying is automatic. When a change is merged into `main` and the tests pass, 
 
 ## 3. How it fits together
 
-_Planned._
-
 ```mermaid
 flowchart LR
     U[Visitor's browser]
@@ -66,7 +64,7 @@ flowchart LR
         RW{{"Rewrite<br/>/api/** → Cloud Run"}}
     end
 
-    subgraph GCP["Google Cloud project: hr-assist-demo, region europe-west1"]
+    subgraph GCP["Google Cloud project: hr-assist-demo-512120, region europe-west1"]
         CR["Cloud Run service<br/>hr-assist-api<br/>0–1 instances"]
         SM[(Secret Manager<br/>API keys)]
         AR[(Artifact Registry<br/>container images)]
@@ -90,6 +88,8 @@ Why the web page and the API sit on different services:
 
 - **The page loads instantly, even when the backend is asleep.** Firebase serves the Angular files from a CDN, which never has a cold start. The connection-status indicator shows the backend waking up instead of a blank screen.
 - **No CORS in production.** The production build calls the API at a relative path (`apiBaseUrl: ''` in [environment.ts](../frontend/src/environments/environment.ts)), and the rewrite makes that work.
+
+The rewrite lives in [firebase.json](../firebase.json): `/api/**` goes to Cloud Run service `hr-assist-api` in `europe-west1`, and every other path falls back to `index.html` so the Angular app handles it. `index.html` is served with `Cache-Control: no-cache`, so a visitor always gets the newest bundle after a deploy. The other files have hashed names, so Firebase's default caching is safe for them.
 
 ## 4. What happens when someone asks a question
 
@@ -126,7 +126,7 @@ Firebase Hosting gives each request at most **60 seconds**. A chat reply takes a
 
 ## 5. How a new version gets deployed
 
-_Planned._ Two workflows run in a chain: the existing **CI** workflow, then a new **Deploy** workflow that only starts when CI on `main` succeeds.
+Two workflows run in a chain: **CI** ([ci.yml](../.github/workflows/ci.yml)), then **Deploy** ([deploy.yml](../.github/workflows/deploy.yml)), which only starts when CI succeeds for a push to `main`. A failed or cancelled CI run deploys nothing.
 
 ```mermaid
 flowchart TD
@@ -138,9 +138,11 @@ flowchart TD
     F --> G[Push the image to Artifact Registry]
     G --> H["gcloud run deploy hr-assist-api<br/>region europe-west1, max 1 instance<br/>env vars + Secret Manager references"]
     H --> I[New Cloud Run revision<br/>receives traffic]
-    I --> J["firebase deploy --only hosting<br/>Angular build + rewrite rules"]
+    I --> I2{"Live revision runs<br/>this commit's image?"}
+    I2 -- no --> M
+    I2 -- yes --> J["firebase deploy --only hosting<br/>Angular build + rewrite rules"]
     J --> K{"Smoke test<br/>GET https://site/api/health<br/>returns status ok?"}
-    K -- yes --> L[Done: new version is live]
+    K -- "yes, within 5 minutes" --> L[Done: new version is live]
     K -- no --> M[Workflow fails, GitHub emails you<br/>roll back in the Cloud Run console]
 ```
 
@@ -153,7 +155,24 @@ What triggers what:
 | You click **Run workflow** | Ingest (prod) | Rebuilds the prod Qdrant collection (see section 6) |
 | Twice a week, on a schedule | Qdrant keep-alive (exists) | Calls `/api/health` so the free Qdrant cluster isn't suspended |
 
-**Rolling back.** Cloud Run keeps every revision. If a deploy is bad, open Cloud Run → `hr-assist-api` → Revisions → **Manage traffic**, and send 100% to the previous revision. Firebase Hosting has its own release history with a **Rollback** button. You can also revert the commit on `main` and let the pipeline deploy again.
+What the Deploy workflow sets on the service, on every deploy:
+
+| Setting | Value |
+| --- | --- |
+| Image | `europe-west1-docker.pkg.dev/hr-assist-demo-512120/hr-assist/hr-assist-api:<commit SHA>` |
+| Instances | min 0, max 1 |
+| Access | unauthenticated invocation allowed (Firebase rewrites need it) |
+| Runs as | `hr-assist-runtime@hr-assist-demo-512120.iam.gserviceaccount.com` |
+| Plain env vars | `APP_ENV=prod`, `QDRANT_URL` (repo variable), `CHAT_MODEL`, `EMBEDDING_MODEL`, `LANGSMITH_TRACING=true`, `LANGSMITH_PROJECT=hr-assist-prod`, `FRONTEND_ORIGIN=https://hr-assist-demo.web.app`, `TRUSTED_PROXY_HOPS` (repo variable, default `1`) |
+| Secrets | `OPENAI_API_KEY`, `QDRANT_API_KEY` and `LANGSMITH_API_KEY`, as references to the `latest` version in Secret Manager |
+
+`--set-env-vars` replaces the whole list on each deploy, so a variable added by hand in the console disappears on the next merge. Change the workflow instead.
+
+**Serialised deploys.** Deploy runs in a single concurrency group without cancelling. If a second merge lands mid-deploy, its deploy waits for the first to finish. If several merges pile up, GitHub keeps only the newest waiting run, so `main`'s latest commit is what ends up live. CI itself cancels a superseded run on `main`, and a cancelled CI run triggers no deploy.
+
+**The smoke test** is [scripts/smoke-test.sh](../scripts/smoke-test.sh). It calls `GET https://hr-assist-demo.web.app/api/health` every 10 seconds for up to 5 minutes, which covers a cold start, and passes only on `"status": "ok"`. A `degraded` reply (Qdrant down), an error status or no answer at all keeps it retrying until the window closes, then fails the workflow. You can run it yourself against any URL, for example `scripts/smoke-test.sh http://localhost:8000 30`. It sends no chat, so a deploy costs no tokens and uses none of the quota.
+
+**Rolling back.** _The console steps are still to be checked against the console after the first deploy._ Cloud Run keeps every revision. If a deploy is bad, open Cloud Run → `hr-assist-api` → Revisions → **Manage traffic**, and send 100% to the previous revision. That pin lasts until the next merge: every deploy sends 100% of traffic to the newest revision again, and then checks that the revision serving it runs the merged commit's image. So fix or revert on `main` before merging anything else. Firebase Hosting has its own release history with a **Rollback** button. You can also revert the commit on `main` and let the pipeline deploy again.
 
 ## 6. How the Corpus gets into production
 
@@ -176,13 +195,13 @@ flowchart LR
 
 ## 7. Where the secrets live
 
-_Planned._ Every key lives in **one** place, Secret Manager, except the one key that's needed to reach Secret Manager.
+Every key lives in **one** place, Secret Manager, except the one key that's needed to reach Secret Manager.
 
 ```mermaid
 flowchart TB
     subgraph GitHub["GitHub repo settings"]
         GS["Secret: GCP_SA_KEY<br/>(deploy service account key)"]
-        GV["Variables: GCP_PROJECT_ID, GCP_REGION<br/>API_URL (keep-alive)"]
+        GV["Variables: GCP_PROJECT_ID, GCP_REGION,<br/>QDRANT_URL, TRUSTED_PROXY_HOPS (optional),<br/>API_URL (keep-alive)"]
     end
 
     subgraph SM["Google Secret Manager"]
@@ -237,7 +256,25 @@ What a request costs: one chat sends about 5,000 input tokens (8 chunks) and ret
 
 **Why exactly one instance.** The rate-limit counters live in the instance's memory. With two instances each would count separately, and a visitor could make 20 requests a minute. Capping Cloud Run at one instance keeps the counts correct. Google notes the cap "can be exceeded for a brief period", for example during a deploy, which is fine for a demo. One instance can handle up to 80 requests at once, and our handlers are async, so one is enough. When the instance restarts, the counters reset. The limits are settings (`RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_DAY`, `RATE_LIMIT_GLOBAL_PER_DAY`), and a rejection's `Retry-After` header says how many seconds until the window resets.
 
-**Which IP counts.** The client IP is read from `X-Forwarded-For`, counting `TRUSTED_PROXY_HOPS` entries from the right (default `1`). Each proxy appends the address it received the request from, so entries further left were written by the client and are ignored. Without the header, the socket peer is used.
+**Which IP counts.** The client IP is read from `X-Forwarded-For`, counting `TRUSTED_PROXY_HOPS` entries from the right (default `1`). Each proxy appends the address it received the request from, so entries further left were written by the client and are ignored. Without the header, the socket peer is used. The Deploy workflow passes the `TRUSTED_PROXY_HOPS` repo variable through, or `1` if it isn't set.
+
+Every chat logs the evidence in one line from `hr_assist.rate_limit`: the raw header, the socket peer, the hop count and the client it chose, e.g. `X-Forwarded-For='198.51.100.4' peer=169.254.1.1 hops=1 client=198.51.100.4`. Find them in Cloud Run → `hr-assist-api` → Logs, filtered on `X-Forwarded-For`. This means Cloud Run's logs hold each visitor's IP address, kept for Cloud Logging's default 30 days. The privacy notice already says questions are logged.
+
+**`X-Forwarded-For` on each path.** _To record after the first deploy._ Send one chat through each path from a machine whose public IP you know (`curl -s https://api.ipify.org`), then read the two log lines:
+
+```sh
+ASK='{"messages":[{"role":"user","content":"How much annual leave do I get?"}]}'
+curl -s -X POST https://hr-assist-demo.web.app/api/chat -H 'Content-Type: application/json' -d "$ASK" > /dev/null
+RUN_URL=$(gcloud run services describe hr-assist-api --region europe-west1 --format 'value(status.url)')
+curl -s -X POST "$RUN_URL/api/chat" -H 'Content-Type: application/json' -d "$ASK" > /dev/null
+```
+
+| Path | Raw `X-Forwarded-For` | Position of your IP from the right |
+| --- | --- | --- |
+| Firebase (`web.app`) | _to record_ | _to record_ |
+| Direct (`run.app`) | _to record_ | _to record_ |
+
+Set `TRUSTED_PROXY_HOPS` to the position of your IP on the Firebase path (`gh variable set TRUSTED_PROXY_HOPS --body <n>`), then rerun Deploy. If the direct path needs a different number, the Firebase setting wins, because it keeps real visitors in separate buckets. On the direct path the limiter then counts whatever entry sits at that position. A caller can forge that entry. So on that path only the global daily cap and the OpenAI hard limit hold. Check both by sending 11 chats in a minute through each URL: the 11th must get a 429.
 
 ## 9. Decision log
 
@@ -293,11 +330,11 @@ Each decision gives the choice, why it suits this project, what else we consider
 
 ### D7. A dedicated GCP project
 
-- **Decision:** a new project (e.g. `hr-assist-demo`) with Firebase added to it, on your existing billing account.
+- **Decision:** a new project, `hr-assist-demo-512120`, with Firebase added to it, on your existing billing account.
 - **Rationale:** HR Assist's costs, permissions and keys are kept apart from your personal website, and it's easy to delete in one go.
 - **Alternatives:** add HR Assist as a second Firebase site in your website's project.
 - **Trade-offs:** one more project to look after.
-- **Validation:** the deploy service account has roles only in `hr-assist-demo`, and HR Assist has its own line in the billing report.
+- **Validation:** the deploy service account has roles only in `hr-assist-demo-512120`, and HR Assist has its own line in the billing report.
 
 ### D8. Region `europe-west1` (Belgium)
 
@@ -344,7 +381,7 @@ Each decision gives the choice, why it suits this project, what else we consider
 **You do these once.** The commands, explanations and checks for every step are in the [one-time setup guide](deployment-setup.md) (ticket #33).
 
 1. Install the `gcloud` and `firebase` command-line tools.
-2. Create the `hr-assist-demo` GCP project on your billing account, and add a **$5 budget alert**.
+2. Create the `hr-assist-demo-512120` GCP project on your billing account, and add a **$5 budget alert**.
 3. Enable the Cloud Run, Artifact Registry, Secret Manager and IAM APIs.
 4. Create an Artifact Registry repository in `europe-west1`.
 5. Create the two service accounts, **runtime** and **deploy**, and give each only the roles it needs.

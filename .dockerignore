@@ -21,3 +21,6 @@ backend/tests/
 **/.ruff_cache
 **/node_modules
 **/.DS_Store
+
+# The credentials file the Deploy workflow's auth step writes to the repo root
+gha-creds-*.json
