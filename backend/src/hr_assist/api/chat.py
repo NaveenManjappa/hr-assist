@@ -31,6 +31,6 @@ def client_ip(request: Request) -> str:
     forwarded = [entry.strip() for entry in raw.split(",") if entry.strip()]
     peer = request.client.host if request.client else "unknown"
     client = forwarded[max(len(forwarded) - hops, 0)] if hops > 0 and forwarded else peer
-    # The evidence for TRUSTED_PROXY_HOPS on each path to the service (docs/deployment.md section 8).
+    # Evidence for setting TRUSTED_PROXY_HOPS on each path (docs/deployment.md section 8).
     logger.info("X-Forwarded-For=%r peer=%s hops=%d client=%s", raw, peer, hops, client)
     return client
