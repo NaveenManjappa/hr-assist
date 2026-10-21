@@ -1,6 +1,7 @@
 import { formatDate } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 
 import { API_BASE_URL } from './api-base-url';
 
@@ -43,12 +44,8 @@ export class ChatStore {
   readonly pending = signal(false);
   readonly error = signal<string | null>(null);
 
-  readonly latestCitations = computed(() => {
-    const last = this.turns().at(-1);
-    return last?.role === 'assistant' ? last.reply.citations : [];
-  });
-
   private failedRequest: ChatRequest | null = null;
+  private inFlight: Subscription | null = null;
 
   ask(question: string): void {
     const content = question.trim();
@@ -72,12 +69,22 @@ export class ChatStore {
     if (this.failedRequest && !this.pending()) this.send(this.failedRequest);
   }
 
+  /** Starts a new conversation. A reply still on its way is dropped; the As-Of Date is kept. */
+  reset(): void {
+    this.inFlight?.unsubscribe();
+    this.inFlight = null;
+    this.failedRequest = null;
+    this.turns.set([]);
+    this.pending.set(false);
+    this.error.set(null);
+  }
+
   private send(body: ChatRequest): void {
     this.pending.set(true);
     this.error.set(null);
     this.failedRequest = null;
 
-    this.http.post<ChatReply>(`${this.baseUrl}/api/chat`, body).subscribe({
+    this.inFlight = this.http.post<ChatReply>(`${this.baseUrl}/api/chat`, body).subscribe({
       next: (reply) => {
         this.turns.update((turns) => [...turns, { role: 'assistant', reply }]);
         this.pending.set(false);

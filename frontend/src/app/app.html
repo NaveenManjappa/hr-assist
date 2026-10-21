@@ -1,39 +1,53 @@
-<div class="app">
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
-          <path d="m9 14 2 2 4-4.5" />
+<!-- The app sits on the canvas: the sidebar on the left, the conversation on an inset panel. -->
+<div class="flex h-dvh bg-bg">
+  @if (navOpen()) {
+    <div
+      class="fixed inset-0 z-30 bg-fg/25 backdrop-blur-[2px] lg:hidden"
+      aria-hidden="true"
+      (click)="navOpen.set(false)"
+    ></div>
+  }
+  <aside
+    id="sidebar"
+    class="invisible fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r border-line bg-bg shadow-md transition-[translate,visibility] duration-200 data-[open=true]:visible data-[open=true]:translate-x-0 motion-reduce:transition-none lg:visible lg:static lg:w-64 lg:flex-none lg:translate-x-0 lg:border-r-0 lg:shadow-none"
+    aria-label="HR Assist"
+    [attr.data-open]="navOpen()"
+  >
+    <!-- A closed drawer is invisible as well as off screen, so it also leaves the tab order. -->
+    <app-sidebar (done)="navOpen.set(false)" />
+  </aside>
+
+  <main
+    class="flex min-w-0 flex-1 flex-col overflow-auto bg-surface lg:my-2 lg:mr-2 lg:rounded-2xl lg:border lg:border-line lg:shadow-sm"
+  >
+    <!-- Below lg the sidebar is a drawer, opened from this bar. -->
+    <header
+      class="sticky top-0 z-20 flex h-14 flex-none items-center gap-3 border-b border-line bg-surface/90 px-3 backdrop-blur-md lg:hidden"
+    >
+      <button
+        type="button"
+        class="grid size-9 cursor-pointer place-items-center rounded-lg text-muted transition-colors hover:bg-surface-sunken hover:text-fg"
+        aria-label="Open menu"
+        aria-controls="sidebar"
+        [attr.aria-expanded]="navOpen()"
+        (click)="navOpen.set(true)"
+      >
+        <svg
+          class="size-5"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        >
+          <path d="M4 7h16M4 12h16M4 17h10" />
         </svg>
-      </span>
-      <span class="brand-name">HR Assist</span>
-      <span class="brand-org">Northstar People Operations</span>
-    </div>
+      </button>
+      <app-logo class="size-7" />
+      <span class="text-md font-semibold tracking-tight">HR Assist</span>
+    </header>
 
-    <div class="topbar-actions">
-      <span class="as-of" title="Questions are answered against this date">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="3.5" y="5" width="17" height="15" rx="2" />
-          <path d="M3.5 10h17M8 3v4M16 3v4" />
-        </svg>
-        As of
-        <time [attr.datetime]="asOfDate() | date: 'yyyy-MM-dd'">{{
-          asOfDate() | date: 'd MMM y'
-        }}</time>
-      </span>
-      <app-connection-status />
-      <app-theme-toggle />
-    </div>
-  </header>
-
-  <div class="workspace">
-    <main class="conversation">
-      <app-conversation />
-    </main>
-
-    <aside class="evidence">
-      <app-evidence-panel />
-    </aside>
-  </div>
+    <app-conversation />
+  </main>
 </div>

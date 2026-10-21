@@ -153,7 +153,7 @@ describe('Chat page', () => {
     expect(markers[2].getAttribute('href')).toBe(`#${cards[0].id}`);
 
     expect(text(cards[0])).toContain('1 Leave and Absence Standard');
-    expect(text(cards[0])).toContain('NDS-HR-LAS-002 · v1.2 · 3.1 Entitlement · p.5');
+    expect(text(cards[0])).toContain('NDS-HR-LAS-002 · v1.2 · 3.1 Entitlement · page 5');
     expect(text(cards[1])).toContain(
       'NDS-HR-PRES-011 · v1.0 · Annual leave: what changed · slide 2',
     );
@@ -166,9 +166,8 @@ describe('Chat page', () => {
     await fixture.whenStable();
 
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(cards[0].querySelector('[data-testid="snippet"]')!.textContent).toContain(
-      '|Less than 3 years|27|8|35|262.5|',
-    );
+    const cells = cards[0].querySelectorAll('[data-testid="snippet"] td');
+    expect([...cells].map(text)).toEqual(['Less than 3 years', '27', '8', '35', '262.5']);
     expect(cards[1].querySelector('[data-testid="snippet"]')).toBeNull();
   });
 
@@ -259,6 +258,51 @@ describe('Chat page', () => {
     expect(root.querySelector('[data-testid="example"]')).toBeNull();
   });
 
+  it('starts a new conversation from the sidebar, keeping the As-Of Date but not the earlier turns', async () => {
+    const { fixture, root } = await renderPage();
+    const newChat = root.querySelector<HTMLButtonElement>('[data-testid="new-chat"]')!;
+    expect(newChat.disabled).toBe(true);
+
+    const date = root.querySelector<HTMLInputElement>('input[type="date"]')!;
+    date.value = '2026-06-15';
+    date.dispatchEvent(new Event('change'));
+    await ask(root, QUESTION, fixture);
+    http
+      .expectOne('http://api.test/api/chat')
+      .flush({ response_type: 'answer', message: '25 days.', citations: [] });
+    await fixture.whenStable();
+
+    expect(newChat.disabled).toBe(false);
+    expect(root.querySelector('[aria-current="true"]')!.textContent).toContain(QUESTION);
+    newChat.click();
+    await fixture.whenStable();
+
+    expect(root.querySelector('[data-testid="reply"]')).toBeNull();
+    expect(root.querySelector('[data-testid="example"]')).not.toBeNull();
+    expect(root.querySelector('[aria-current="true"]')).toBeNull();
+    expect(newChat.disabled).toBe(true);
+
+    await ask(root, 'How many days a week can I work from home?', fixture);
+    expect(http.expectOne('http://api.test/api/chat').request.body).toEqual({
+      messages: [{ role: 'user', content: 'How many days a week can I work from home?' }],
+      as_of_date: '2026-06-15',
+    });
+  });
+
+  it('drops a reply still pending when a new conversation starts', async () => {
+    const { fixture, root } = await renderPage();
+    await ask(root, QUESTION, fixture);
+    const request = http.expectOne('http://api.test/api/chat');
+
+    root.querySelector<HTMLButtonElement>('[data-testid="new-chat"]')!.click();
+    await fixture.whenStable();
+
+    expect(request.cancelled).toBe(true);
+    expect(root.querySelector('[data-testid="pending"]')).toBeNull();
+    expect(root.querySelector('.question')).toBeNull();
+    expect(root.querySelector('[data-testid="example"]')).not.toBeNull();
+  });
+
   it('sends the earlier turns as history with a follow-up question', async () => {
     const { fixture, root } = await renderPage();
     await ask(root, QUESTION, fixture);
@@ -276,7 +320,7 @@ describe('Chat page', () => {
     ]);
   });
 
-  it('shows the As-Of Date above the input and sends a changed date with the next question', async () => {
+  it('shows the As-Of Date beside the input and sends a changed date with the next question', async () => {
     const { fixture, root } = await renderPage();
     const control = root.querySelector<HTMLInputElement>('input[type="date"]')!;
     expect(root.querySelector('label[for="as-of-date"]')!.textContent).toContain('Answering as of');

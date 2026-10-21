@@ -36,7 +36,6 @@ const POLL_INTERVAL_MS = 30_000;
 @Component({
   selector: 'app-connection-status',
   templateUrl: './connection-status.html',
-  styleUrl: './connection-status.css',
   host: {
     '(document:click)': 'closeOnOutsideClick($event)',
     '(document:keydown.escape)': 'open.set(false)',

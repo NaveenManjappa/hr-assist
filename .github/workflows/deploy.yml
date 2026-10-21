@@ -26,7 +26,7 @@ jobs:
       PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       REGION: ${{ vars.GCP_REGION }}
       SERVICE: hr-assist-api
-      SITE_URL: https://hr-assist-demo.web.app
+      SITE_URL: https://hr-assist.naveenmanjappa.com
       IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/hr-assist/hr-assist-api:${{ github.event.workflow_run.head_sha }}
     steps:
       - uses: actions/checkout@v7
