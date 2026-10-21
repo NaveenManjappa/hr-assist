@@ -414,6 +414,21 @@ def test_a_citation_from_a_superseded_source_is_marked_superseded(settings: Sett
     ]
 
 
+def test_a_long_snippet_is_cut_at_a_word_and_marked_as_shortened(settings: Settings) -> None:
+    body = "Notice periods depend on grade. " + "An employer must give notice. " * 30
+    reply = AssistantReply(response_type="answer", message="1 month.", cited_sources=[1])
+
+    [citation] = chat(
+        settings, reply, ask(), FakeRetriever([make_chunk("22.4", "Notice", body, page=58)])
+    ).json()["citations"]
+
+    snippet = citation["snippet"]
+    assert len(snippet) <= 601
+    assert snippet.endswith("…")
+    assert body.startswith(snippet[:-1])
+    assert body[len(snippet) - 1] == " "
+
+
 @pytest.mark.parametrize(
     "reply",
     [
