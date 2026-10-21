@@ -422,6 +422,8 @@ If GCP refuses to create a key at step 6, your account belongs to an organisatio
 
 Do this after the `*.web.app` URL works.
 
+For the full walkthrough with checks, using Namecheap, see the [go-live guide](go-live.md) (ticket #31). It also sets `API_URL` and asks the smoke question on the live site.
+
 1. In the Firebase console, open **Hosting → Add custom domain** and enter e.g. `hr-assist.yourdomain.com`.
 2. Firebase shows you DNS records to add: a **TXT** record that proves you own the domain, and an **A** record that points the subdomain at Firebase.
 3. Add them at your DNS provider:
