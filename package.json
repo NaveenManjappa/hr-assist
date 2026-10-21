@@ -1,0 +1,7 @@
+{
+  "name": "hr-assist",
+  "private": true,
+  "scripts": {
+    "dev": "scripts/dev.sh"
+  }
+}
