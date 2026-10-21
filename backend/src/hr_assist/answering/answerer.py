@@ -91,6 +91,14 @@ def _citation(chunk: Chunk) -> Citation:
         page_start=m.page_start,
         page_end=m.page_end,
         slide=m.slide,
-        snippet=chunk.body[:SNIPPET_CHARS],
+        snippet=_snippet(chunk.body),
         status=m.status,
     )
+
+
+def _snippet(body: str) -> str:
+    """The start of the chunk, cut at a word boundary and marked with an ellipsis if shortened."""
+    if len(body) <= SNIPPET_CHARS:
+        return body
+    cut = body[: SNIPPET_CHARS + 1].rsplit(maxsplit=1)[0]
+    return cut.rstrip() + "…"
