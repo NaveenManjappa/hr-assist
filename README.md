@@ -45,7 +45,7 @@ flowchart LR
 - **Ingestion** reads only the files listed in the Corpus Manifest. It rebuilds the whole Qdrant collection on each run. The collection name combines `APP_ENV`, the chunking version and the embedding model, so changing either one produces a new index rather than overwriting the old one.
 - **Answering** always retrieves first, then makes a single LLM call that returns a typed reply. There is no agent loop.
 - **The API** has a chat endpoint and a health endpoint. Errors come back in one consistent JSON shape, and every response carries an `X-Request-ID` header.
-- **The UI** shows inline citation markers, a citation card with the supporting snippet for each Citation, the As-Of Date, and connection status.
+- **The UI** shows inline citation markers, and under each reply a card for each Citation with its supporting snippet, formatted as headings, lists and tables. It also shows the As-Of Date and connection status. A sidebar (a drawer on small screens) starts a new chat and lists the current conversation. An empty chat offers example questions grouped by what they show: cited Answers, version-aware answers, Clarifications, and Abstentions and Refusals. Light, dark and system themes are styled with Tailwind.
 
 ### Deployed
 
