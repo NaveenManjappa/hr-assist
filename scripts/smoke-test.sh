@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Polls <base URL>/api/health until it reports status ok, or fails once the window closes.
 # The window covers a cold start. Used by the Deploy workflow (docs/deployment.md section 5).
-#   scripts/smoke-test.sh https://hr-assist-demo.web.app [window seconds, default 300]
+#   scripts/smoke-test.sh https://hr-assist.naveenmanjappa.com [window seconds, default 300]
 set -euo pipefail
 
 base_url=${1:?usage: smoke-test.sh <base URL> [window seconds]}

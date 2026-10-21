@@ -11,7 +11,9 @@ Every reply has a Response Type:
 
 The domain terms used here (Corpus Manifest, Effective Period, Applicable Date and so on) are defined in [GLOSSARY.md](GLOSSARY.md).
 
-There is no live demo yet. Deployment is the next stage.
+**Try the live demo at <https://hr-assist.naveenmanjappa.com>.** Questions are logged to improve the demo, so don't enter personal information.
+
+Stage 2, deployment, is done. Evaluation is the next stage.
 
 ## Architecture
 
@@ -44,6 +46,15 @@ flowchart LR
 - **Answering** always retrieves first, then makes a single LLM call that returns a typed reply. There is no agent loop.
 - **The API** has a chat endpoint and a health endpoint. Errors come back in one consistent JSON shape, and every response carries an `X-Request-ID` header.
 - **The UI** shows inline citation markers, a citation card with the supporting snippet for each Citation, the As-Of Date, and connection status.
+
+### Deployed
+
+- **Firebase Hosting** serves the Angular build at the custom subdomain, and rewrites `/api/**` to the backend, so the page and the API share one origin.
+- **Google Cloud Run** runs the FastAPI container in `europe-west1`, scaling between zero and one instance. API keys come from Secret Manager.
+- **GitHub Actions** deploys every merge to `main` once CI passes, then smoke-tests `/api/health` through the public URL. Loading the prod Corpus is a separate workflow you run by hand.
+- **Usage limits** protect the public demo: per-IP and global daily rate limits in the app, an output-token cap, and a hard monthly spending limit on the OpenAI project.
+
+The [deployment guide](docs/deployment.md) explains each part and why it was chosen.
 
 Code layout:
 
@@ -201,7 +212,7 @@ npm run lint
 
 ## Keeping the Qdrant cluster awake
 
-Qdrant Cloud suspends a free cluster after a week without requests, and deletes it after four weeks. The [keep-alive workflow](.github/workflows/qdrant-keep-alive.yml) calls `/api/health` twice a week, and that call reaches Qdrant. To turn it on, set the `API_URL` repository variable (Settings → Secrets and variables → Actions → Variables) to the deployed backend's base URL. Until then, the workflow is a no-op. You can also run it by hand from the Actions tab. It fails if the API is down or can't reach Qdrant.
+Qdrant Cloud suspends a free cluster after a week without requests, and deletes it after four weeks. The [keep-alive workflow](.github/workflows/qdrant-keep-alive.yml) calls `/api/health` twice a week, and that call reaches Qdrant. It calls the URL in the `API_URL` repository variable (Settings → Secrets and variables → Actions → Variables), which is set to the live site, <https://hr-assist.naveenmanjappa.com>, so the ping goes through the Firebase rewrite. If `API_URL` is empty, the workflow is a no-op. You can also run it by hand from the Actions tab. It fails if the API is down or can't reach Qdrant.
 
 GitHub runs scheduled workflows only from the default branch, and turns them off after 60 days with no activity in the repository. If the repo goes quiet for that long, re-enable the workflow from the Actions tab.
 
@@ -211,4 +222,9 @@ GitHub runs scheduled workflows only from the default branch, and turns them off
 - **Short follow-ups retrieve poorly.** Retrieval uses only the latest message. A follow-up such as "and for part-timers?" searches on those words alone, without the earlier question. The last 6 messages do reach the model, but the chunks it needs may not have been retrieved.
 - **No metadata filtering.** Retrieval is pure vector similarity. Superseded Source Documents and Summary Decks compete with current Policy Documents for the top 8 places, and only the prompt decides which one prevails.
 - **No streaming.** The reply appears all at once, after the full answer has been generated.
+- **The demo is rate-limited.** Each IP can send 10 chats a minute and 100 a day, and the whole demo answers at most 1000 a day. Beyond that, chats are rejected until the window resets (daily limits reset at midnight UTC). The OpenAI project also stops at $10 a month.
+- **Conversations are logged.** Every question and reply is traced to LangSmith, and Cloud Run's logs keep each visitor's IP address for 30 days by default. The UI says so on first load.
+- **Cold starts.** The backend scales to zero when idle. The first question after a quiet period waits a few seconds while an instance starts; the page itself loads straight away.
+- **Single instance.** Rate-limit counters live in the one instance's memory, so the backend can't scale out, and the counters reset whenever the instance restarts. One instance handles up to 80 requests at once, which is plenty for a demo.
+- **The direct Cloud Run URL is public.** Calls to it skip Firebase but hit the same in-app limits. Firebase App Check, which would close that gap, is left for Stage 5.
 - **The Test Fixture isn't ingested.** The prompt-injection sample in [test_fixtures/](test_fixtures/) isn't in the Corpus Manifest, so the eval questions that depend on it can't be answered yet.

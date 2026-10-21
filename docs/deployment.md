@@ -2,7 +2,7 @@
 
 This guide explains how HR Assist runs on the internet, how a new version gets deployed, and why each choice was made. It assumes you have never deployed a web app before.
 
-> **Status:** sections 3, 4, 5 and 7 describe what is running: the Deploy workflow ([deploy.yml](../.github/workflows/deploy.yml)) puts every merge to `main` live on <https://hr-assist-demo.web.app>. Sections still marked _planned_ become real when their tickets land. Update the guide as the tickets close, so it always describes what is actually running.
+> **Status:** this guide describes what is live. The Deploy workflow ([deploy.yml](../.github/workflows/deploy.yml)) puts every merge to `main` live on <https://hr-assist.naveenmanjappa.com>, and the Firebase address <https://hr-assist-demo.web.app> serves the same site. When you change the setup, update the guide in the same PR, so it always describes what is actually running.
 
 ## Contents
 
@@ -153,7 +153,7 @@ What triggers what:
 | Pull request opened or updated | CI | Runs the checks and builds the Docker image, but deploys nothing |
 | Push to `main` | CI, then Deploy | Checks, then deploys both parts and runs the smoke test |
 | You click **Run workflow** | Ingest (prod) | Rebuilds the prod Qdrant collection (see section 6) |
-| Twice a week, on a schedule | Qdrant keep-alive (exists) | Calls `/api/health` so the free Qdrant cluster isn't suspended |
+| Twice a week, on a schedule | Qdrant keep-alive | Calls `/api/health` so the free Qdrant cluster isn't suspended |
 
 What the Deploy workflow sets on the service, on every deploy:
 
@@ -163,14 +163,14 @@ What the Deploy workflow sets on the service, on every deploy:
 | Instances | min 0, max 1 |
 | Access | unauthenticated invocation allowed (Firebase rewrites need it) |
 | Runs as | `hr-assist-runtime@hr-assist-demo-512120.iam.gserviceaccount.com` |
-| Plain env vars | `APP_ENV=prod`, `QDRANT_URL` (repo variable), `CHAT_MODEL`, `EMBEDDING_MODEL`, `LANGSMITH_TRACING=true`, `LANGSMITH_PROJECT=hr-assist-prod`, `FRONTEND_ORIGIN=https://hr-assist-demo.web.app`, `TRUSTED_PROXY_HOPS` (repo variable, default `1`) |
+| Plain env vars | `APP_ENV=prod`, `QDRANT_URL` (repo variable), `CHAT_MODEL`, `EMBEDDING_MODEL`, `LANGSMITH_TRACING=true`, `LANGSMITH_PROJECT=hr-assist-prod`, `FRONTEND_ORIGIN=https://hr-assist.naveenmanjappa.com`, `TRUSTED_PROXY_HOPS` (repo variable, default `1`) |
 | Secrets | `OPENAI_API_KEY`, `QDRANT_API_KEY` and `LANGSMITH_API_KEY`, as references to the `latest` version in Secret Manager |
 
 `--set-env-vars` replaces the whole list on each deploy, so a variable added by hand in the console disappears on the next merge. Change the workflow instead.
 
 **Serialised deploys.** Deploy runs in a single concurrency group without cancelling. If a second merge lands mid-deploy, its deploy waits for the first to finish. If several merges pile up, GitHub keeps only the newest waiting run, so `main`'s latest commit is what ends up live. CI itself cancels a superseded run on `main`, and a cancelled CI run triggers no deploy.
 
-**The smoke test** is [scripts/smoke-test.sh](../scripts/smoke-test.sh). It calls `GET https://hr-assist-demo.web.app/api/health` every 10 seconds for up to 5 minutes, which covers a cold start, and passes only on `"status": "ok"`. A `degraded` reply (Qdrant down), an error status or no answer at all keeps it retrying until the window closes, then fails the workflow. You can run it yourself against any URL, for example `scripts/smoke-test.sh http://localhost:8000 30`. It sends no chat, so a deploy costs no tokens and uses none of the quota.
+**The smoke test** is [scripts/smoke-test.sh](../scripts/smoke-test.sh). It calls `GET https://hr-assist.naveenmanjappa.com/api/health` every 10 seconds for up to 5 minutes, which covers a cold start, and passes only on `"status": "ok"`. A `degraded` reply (Qdrant down), an error status or no answer at all keeps it retrying until the window closes, then fails the workflow. You can run it yourself against any URL, for example `scripts/smoke-test.sh http://localhost:8000 30`. It sends no chat, so a deploy costs no tokens and uses none of the quota.
 
 **Rolling back.** These steps were checked against both consoles on 2026-10-20. Cloud Run keeps every revision. If a deploy is bad, open Cloud Run → `hr-assist-api` → Revisions → **Manage traffic**, and send 100% to the previous revision. That pin lasts until the next merge: every deploy sends 100% of traffic to the newest revision again, and then checks that the revision serving it runs the merged commit's image. So fix or revert on `main` before merging anything else. Firebase Hosting has its own release history with a **Rollback** button. You can also revert the commit on `main` and let the pipeline deploy again.
 
@@ -240,7 +240,7 @@ flowchart TB
 
 ## 8. How we stop the demo costing money
 
-The demo is public with no login, and every question costs OpenAI tokens. There are several layers of protection, from the code outwards. The in-app layers (request validation, rate limits and the output cap) are live. The OpenAI hard limit and the GCP budget alert are _planned_ and are set up by hand.
+The demo is public with no login, and every question costs OpenAI tokens. There are several layers of protection, from the code outwards. The in-app layers (request validation, rate limits and the output cap) are in the code. The OpenAI hard limit and the GCP budget alert were set up by hand, in steps 2 and 6 of the [one-time setup guide](deployment-setup.md).
 
 ```mermaid
 flowchart LR
@@ -263,7 +263,7 @@ Outside the app, two more things watch spending:
 
 What a request costs: one chat sends about 5,000 input tokens (8 chunks) and returns a few hundred output tokens. That's roughly $0.001 on `gpt-6-luna`, so even the 1000-a-day cap costs about $1 a day at most.
 
-**Bots that find the Cloud Run URL.** Cloud Run gives the service a public `https://hr-assist-api-….run.app` address. Firebase Hosting can only forward requests to a publicly reachable service, and Google's docs say that restricting ingress or turning off that URL breaks Firebase rewrites. So someone could call the backend directly and bypass Firebase. This is acceptable for Stage 2 because the limits above live **inside the app**, so every path hits them. The worst a bot can do is use up the day's quota until midnight UTC. A stronger fix, **Firebase App Check**, is planned for Stage 5 (see decision D9).
+**Bots that find the Cloud Run URL.** Cloud Run gives the service a public `https://hr-assist-api-….run.app` address. Firebase Hosting can only forward requests to a publicly reachable service, and Google's docs say that restricting ingress or turning off that URL breaks Firebase rewrites. So someone could call the backend directly and bypass Firebase. This is acceptable for Stage 2 because the limits above live **inside the app**, so every path hits them. The worst a bot can do is use up the day's quota until midnight UTC. A stronger fix, **Firebase App Check**, is left for Stage 5 (see decision D9).
 
 **Why exactly one instance.** The rate-limit counters live in the instance's memory. With two instances each would count separately, and a visitor could make 20 requests a minute. Capping Cloud Run at one instance keeps the counts correct. Google notes the cap "can be exceeded for a brief period", for example during a deploy, which is fine for a demo. One instance can handle up to 80 requests at once, and our handlers are async, so one is enough. When the instance restarts, the counters reset. The limits are settings (`RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_DAY`, `RATE_LIMIT_GLOBAL_PER_DAY`), and a rejection's `Retry-After` header says how many seconds until the window resets.
 
@@ -377,11 +377,11 @@ Each decision gives the choice, why it suits this project, what else we consider
 
 ### D11. Your own subdomain, after the `web.app` URL works
 
-- **Decision:** go live on `*.web.app` first, then connect a subdomain of your website (e.g. `hr-assist.<yourdomain>`) at GoDaddy or Namecheap.
+- **Decision:** go live on `*.web.app` first, then connect a subdomain of your website, `hr-assist.naveenmanjappa.com`, with a CNAME record at Namecheap.
 - **Rationale:** it looks credible on a CV, and the link outlives any hosting change. Firebase provides the HTTPS certificate for free.
 - **Alternatives:** stay on `hr-assist-demo.web.app`.
-- **Trade-offs:** DNS records to add. The certificate can take up to 24 hours, though usually only a few.
-- **Validation:** `curl -I https://hr-assist.<yourdomain>/api/health` returns 200 with a valid certificate.
+- **Trade-offs:** a DNS record to add and keep. The certificate can take up to 24 hours, though usually only a few.
+- **Validation:** `curl -I https://hr-assist.naveenmanjappa.com/api/health` returns 200 with a valid certificate.
 
 ### D12. Our own Dockerfile
 
@@ -422,16 +422,17 @@ If GCP refuses to create a key at step 6, your account belongs to an organisatio
 
 Do this after the `*.web.app` URL works.
 
-For the full walkthrough with checks, using Namecheap, see the [go-live guide](go-live.md) (ticket #31). It also sets `API_URL` and asks the smoke question on the live site.
+HR Assist is live this way on `hr-assist.naveenmanjappa.com`, with the DNS at Namecheap. For the full walkthrough with checks, see the [go-live guide](go-live.md) (ticket #31). It also sets `API_URL` and asks the smoke question on the live site.
 
-1. In the Firebase console, open **Hosting → Add custom domain** and enter e.g. `hr-assist.yourdomain.com`.
-2. Firebase shows you DNS records to add: a **TXT** record that proves you own the domain, and an **A** record that points the subdomain at Firebase.
-3. Add them at your DNS provider:
-   - **GoDaddy:** Domain → **DNS** → **Add New Record**. For the A record: type `A`, Name `hr-assist`, Value is the IP Firebase showed. For the TXT record: type `TXT`, with the Name and Value Firebase showed.
-   - **Namecheap:** Domain List → **Manage** → **Advanced DNS** → **Add New Record**. Same values. In the Host field, type only `hr-assist`, not the full domain.
-4. **Remove** any existing `AAAA` or `CNAME` records for that subdomain. Firebase can't issue a certificate while they exist.
+1. In the Firebase console, open **Hosting → Add custom domain** and enter the subdomain, e.g. `hr-assist.naveenmanjappa.com`.
+2. Pick **Quick setup** in the **Setup mode** switch. Firebase shows one DNS record to add: a **CNAME** from the subdomain to the site's `web.app` address, e.g. `hr-assist-demo.web.app`. (**Advanced** setup, for moving a site that's already live without downtime, asks for **A** and **TXT** records instead. We didn't use it.)
+3. Add the record at your DNS provider:
+   - **GoDaddy:** Domain → **DNS** → **Add New Record**. Type `CNAME`, Name `hr-assist`, Value `hr-assist-demo.web.app`.
+   - **Namecheap:** Domain List → **Manage** → **Advanced DNS** → **Add New Record** → **CNAME Record**. Host `hr-assist`, Target `hr-assist-demo.web.app`. In the Host field, type only `hr-assist`, not the full domain.
+4. **Remove** every other record on that subdomain (`A`, `AAAA`, `TXT` or another `CNAME`). DNS doesn't let a CNAME share its name with any other record, and Firebase can't issue a certificate while they exist. Leave records for other names, such as `@` and `www`, alone.
 5. Click **Verify** in Firebase. DNS usually updates within an hour (GoDaddy says up to 48 hours). The HTTPS certificate usually follows within a few hours, at most 24.
-6. **Leave the TXT record in place.** Firebase needs it there permanently.
+6. **Leave the CNAME record in place.** Removing it takes the site down.
+7. Change `SITE_URL` in [deploy.yml](../.github/workflows/deploy.yml) to the new address. The Deploy workflow uses it as `FRONTEND_ORIGIN` and for the smoke test.
 
 If your domain's DNS is hosted somewhere other than the registrar, for example because your personal site's host manages it, add the records there instead. Only the company running your domain's nameservers can change its records.
 
@@ -461,7 +462,7 @@ If your domain's DNS is hosted somewhere other than the registrar, for example b
 | Deploy fails with any other `Permission ... denied` | A role from setup step 10 is missing | Run setup step 10's checks; they list all six grants. Fixes made so far are in the [log of fixes](deployment-setup.md#log-of-fixes-made-after-setup) |
 | Every chat returns `503 upstream_unavailable`, "Searching the policy index failed.", but `/api/health` is ok | The prod collection hasn't been built yet | Run **Ingest (prod)** (section 6) |
 | Deploy succeeded but the smoke test failed | Missing secret, wrong env var, or the rewrite isn't deployed | Cloud Run → Revisions → Logs; `firebase.json` rewrites |
-| Custom domain shows a certificate error | Certificate not issued yet, or a conflicting AAAA/CNAME record | Firebase Hosting → domain status; your DNS records |
+| Custom domain shows a certificate error | Certificate not issued yet, or another record on the subdomain besides the CNAME | Firebase Hosting → domain status; your DNS records |
 | `gcloud iam service-accounts keys create` is refused | Organisation policy blocks keys | Switch to Workload Identity Federation (ADR 0004) |
 
 ## 14. Sources
@@ -470,8 +471,8 @@ Checked on 2026-10-19.
 
 - Firebase: [Serve dynamic content with Cloud Run](https://firebase.google.com/docs/hosting/cloud-run). Covers the supported regions (including `europe-west1`), the 60-second request timeout, `firebase.json` rewrite syntax and `pinTag`, and unauthenticated invocation.
 - Firebase: [Manage cache behavior](https://firebase.google.com/docs/hosting/manage-cache). Covers dynamic content defaulting to `Cache-Control: private` and cookies being stripped except `__session`.
-- Firebase: [Connect a custom domain](https://firebase.google.com/docs/hosting/custom-domain). Covers the TXT and A records, removing conflicting CNAME/AAAA records, and the certificate taking up to 24 hours.
-- Firebase: [Protect custom backend resources with App Check](https://firebase.google.com/docs/app-check/web/custom-resource). The planned Stage 5 defence.
+- Firebase: [Connect a custom domain](https://firebase.google.com/docs/hosting/custom-domain). Covers Quick and Advanced setup, the TXT and A records Advanced setup asks for, removing conflicting records, and the certificate taking up to 24 hours. Quick setup's single CNAME record is what the console showed on go-live (ticket #31).
+- Firebase: [Protect custom backend resources with App Check](https://firebase.google.com/docs/app-check/web/custom-resource). The defence left for Stage 5.
 - Cloud Run: [Restrict network ingress](https://docs.cloud.google.com/run/docs/securing/ingress). Covers the ingress options, and that turning off the `run.app` URL breaks Firebase Hosting.
 - Cloud Run: [Configure secrets](https://docs.cloud.google.com/run/docs/configuring/services/secrets). Covers `--set-secrets` and `--update-secrets`, `roles/secretmanager.secretAccessor`, and env vars being read at instance startup.
 - Cloud Run: [Maximum instances](https://docs.cloud.google.com/run/docs/configuring/max-instances). Covers the `--max` flag, and that the cap can be briefly exceeded.
@@ -481,5 +482,5 @@ Checked on 2026-10-19.
 - GitHub: [google-github-actions/auth](https://github.com/google-github-actions/auth). Covers the `credentials_json` input, why WIF is recommended over keys, and storing the key as one line.
 - GitHub: [FirebaseExtended/action-hosting-deploy](https://github.com/FirebaseExtended/action-hosting-deploy). Covers the `firebaseServiceAccount` key input and `channelId: live`.
 - OpenAI: [Spend limits](https://developers.openai.com/api/docs/guides/spend-limits.md). Covers turning on "Enforce a hard limit", the `429 project_spend_limit_exceeded` error, and that enforcement isn't instantaneous.
-- GoDaddy: [Add an A record](https://www.godaddy.com/help/add-an-a-record-19238) and [Add a TXT record](https://www.godaddy.com/help/add-a-txt-record-19232).
-- Namecheap: [Set up an A record](https://www.namecheap.com/support/knowledgebase/article.aspx/319/2237/how-can-i-set-up-an-a-address-record-for-my-domain/) and [Add TXT records](https://www.namecheap.com/support/knowledgebase/article.aspx/317/2237/how-do-i-add-txtspfdkimdmarc-records-for-my-domain/).
+- GoDaddy: [Add a CNAME record](https://www.godaddy.com/help/add-a-cname-record-19236), checked on 2026-10-21.
+- Namecheap: [How to create a CNAME record for your domain](https://www.namecheap.com/support/knowledgebase/article.aspx/9646/2237/how-to-create-a-cname-record-for-your-domain/), checked on 2026-10-21.
