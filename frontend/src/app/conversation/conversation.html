@@ -1,53 +1,145 @@
-<div class="conversation-body" #body>
+<div
+  class="grid flex-1 items-center-safe justify-items-center px-4 pt-12 pb-8 has-[.turns]:content-start has-[.turns]:items-start sm:px-6 lg:overflow-auto"
+  #body
+>
   @if (chat.turns().length === 0) {
-    <div class="welcome">
-      <h1>Ask a question about Northstar HR policy</h1>
-      <p class="welcome-lede">
+    <div class="w-full max-w-chat animate-settle motion-reduce:animate-none">
+      <p
+        class="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-muted shadow-xs"
+      >
+        <span class="size-1.5 rounded-full bg-accent" aria-hidden="true"></span>
+        Cited answers from Northstar's HR policies
+      </p>
+      <h1 class="mt-4 text-2xl leading-tight font-semibold tracking-tight text-fg">
+        Ask a question about Northstar HR policy
+      </h1>
+      <p class="mt-3 max-w-152 text-md leading-relaxed text-muted">
         Answers come only from Northstar's Policy Documents and Summary Decks. Each one cites the
         document, version, section and page or slide it relies on, so you can check it yourself.
       </p>
 
-      <p class="suggestions-label">Try asking</p>
-      <ul class="suggestions">
-        @for (suggestion of suggestions; track suggestion.question) {
-          <li>
-            <button
-              type="button"
-              class="suggestion"
-              data-testid="example"
-              (click)="ask(suggestion.question)"
-            >
-              <span class="topic">{{ suggestion.topic }}</span>
-              <span class="suggestion-text">{{ suggestion.question }}</span>
-            </button>
-          </li>
+      <div class="mt-8 grid gap-3 sm:grid-cols-2">
+        @for (group of suggestionGroups; track group.label) {
+          <section
+            class="rounded-xl border border-line bg-surface shadow-xs"
+            [attr.aria-labelledby]="'group-' + $index"
+          >
+            <div class="flex items-start gap-3 px-4 pt-4 pb-2">
+              <span
+                class="grid size-8 flex-none place-items-center rounded-lg bg-accent-soft text-accent"
+                aria-hidden="true"
+              >
+                <svg
+                  class="size-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  @for (d of group.icon; track d) {
+                    <path [attr.d]="d" />
+                  }
+                </svg>
+              </span>
+              <div class="min-w-0">
+                <h2 class="text-sm font-semibold text-fg" [id]="'group-' + $index">
+                  {{ group.label }}
+                </h2>
+                <p class="mt-0.5 text-xs leading-snug text-subtle">{{ group.description }}</p>
+              </div>
+            </div>
+            <ul class="grid px-2 pb-2">
+              @for (question of group.questions; track question) {
+                <li>
+                  <button
+                    type="button"
+                    class="group flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm leading-snug text-muted transition-colors hover:bg-surface-sunken hover:text-fg"
+                    data-testid="example"
+                    (click)="ask(question)"
+                  >
+                    <span class="suggestion-text flex-1">{{ question }}</span>
+                    <svg
+                      class="size-[14px] flex-none text-subtle opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                </li>
+              }
+            </ul>
+          </section>
         }
-      </ul>
+      </div>
     </div>
   } @else {
-    <ol class="turns" aria-label="Conversation">
+    <ol class="turns grid w-full max-w-chat gap-7" aria-label="Conversation">
       @for (turn of chat.turns(); track $index) {
         @if (turn.role === 'user') {
-          <li class="question">{{ turn.content }}</li>
+          <li
+            class="question max-w-[85%] justify-self-end rounded-2xl rounded-br-md bg-surface-sunken px-4 py-2.5 text-md leading-relaxed wrap-anywhere whitespace-pre-line text-fg"
+          >
+            {{ turn.content }}
+          </li>
         } @else {
-          <li><app-reply [reply]="turn.reply" [idPrefix]="'turn-' + $index" /></li>
+          <li class="flex gap-3">
+            <app-logo class="mt-0.5 size-7" />
+            <div class="min-w-0 flex-1">
+              <app-reply [reply]="turn.reply" [idPrefix]="'turn-' + $index" />
+            </div>
+          </li>
         }
       }
       @if (chat.pending()) {
-        <li class="pending" data-testid="pending" role="status">
-          <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        <li class="flex items-center gap-3 text-sm text-muted" data-testid="pending" role="status">
+          <app-logo class="size-7 opacity-80" />
+          <span class="inline-flex gap-1" aria-hidden="true">
+            <span
+              class="size-[6px] animate-dot rounded-full bg-accent motion-reduce:animate-none"
+            ></span>
+            <span
+              class="size-[6px] animate-dot rounded-full bg-accent [animation-delay:150ms] motion-reduce:animate-none"
+            ></span>
+            <span
+              class="size-[6px] animate-dot rounded-full bg-accent [animation-delay:300ms] motion-reduce:animate-none"
+            ></span>
+          </span>
           Searching the policies…
         </li>
       }
     </ol>
     @if (chat.error(); as error) {
-      <div class="error" role="alert">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
+      <div
+        class="mt-5 flex w-full max-w-chat flex-wrap items-center gap-3 rounded-xl border border-danger/25 bg-danger-soft py-2.5 pr-2.5 pl-4 text-sm text-danger"
+        role="alert"
+      >
+        <svg
+          class="size-[18px] flex-none"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        >
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7.5v5.5M12 16.5h.01" />
         </svg>
-        <p class="error-message">{{ error }}</p>
-        <button type="button" class="retry" data-testid="retry" (click)="chat.retry()">
+        <p class="min-w-40 flex-1">{{ error }}</p>
+        <button
+          type="button"
+          class="h-8 flex-none cursor-pointer rounded-lg border border-danger/30 bg-surface px-3 text-sm font-medium text-danger transition-colors hover:bg-danger hover:text-surface"
+          data-testid="retry"
+          (click)="chat.retry()"
+        >
           Try again
         </button>
       </div>

@@ -3,7 +3,11 @@ import { Component, ElementRef, input, model, output, viewChild } from '@angular
 @Component({
   selector: 'app-composer',
   templateUrl: './composer.html',
-  styleUrl: './composer.css',
+  host: {
+    // Below lg the whole workspace scrolls, so the composer and its logging notice stay pinned in view.
+    class:
+      'block max-lg:sticky max-lg:bottom-0 max-lg:z-10 max-lg:pt-3 max-lg:bg-[linear-gradient(to_bottom,transparent,var(--surface)_0.75rem)]',
+  },
 })
 export class Composer {
   readonly draft = model('');

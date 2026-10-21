@@ -1,104 +1,217 @@
 @import 'tailwindcss';
 
+/*
+ * Tailwind tokens. The colours and shadows read the palette variables below, so every utility
+ * follows the light, dark and system themes without needing dark: variants.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --shadow-*: initial;
+  --shadow-xs: var(--elev-xs);
+  --shadow-sm: var(--elev-sm);
+  --shadow-md: var(--elev-md);
+}
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Sizes without a line height, so text keeps the line height it inherits. */
+  --text-*: initial;
+  --text-2xs: 0.72rem;
+  --text-xs: 0.8rem;
+  --text-sm: 0.867rem;
+  --text-md: 0.933rem;
+  --text-base: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.6rem;
+  --text-2xl: 2rem;
+
+  --tracking-label: 0.06em;
+
+  --radius-*: initial;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  --container-chat: 48rem;
+
+  --animate-settle: settle 360ms ease-out both;
+  --animate-dot: dot 1.2s ease-in-out infinite;
+  --animate-breathe: breathe 1.6s ease-in-out infinite;
+  --animate-rise: rise 140ms ease-out;
+
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
+  @keyframes dot {
+    0%,
+    80%,
+    100% {
+      opacity: 0.3;
+      transform: scale(0.85);
+    }
+    40% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes breathe {
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+}
+
+/* The small uppercase heading above a group: "Citations", "Service status", "Excerpt". */
+@utility eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+/*
+ * Calm neutrals with one deep teal accent; status colours are kept soft. The app sits on the --bg
+ * canvas, with the conversation on a --surface panel.
+ */
 :root {
   color-scheme: light;
-  --bg: #f4f6f9;
+  --bg: #f2f4f7;
   --surface: #ffffff;
-  --surface-sunken: #eef1f5;
-  --border: #dde2e9;
-  --border-strong: #c3cbd6;
-  --text: #151a21;
-  --text-muted: #566070;
-  --text-subtle: #7a8494;
-  --accent: #1f5bd6;
-  --accent-hover: #1a4ebb;
-  --accent-soft: #e8effd;
+  --surface-sunken: #f4f6f8;
+  --border: #e4e7ec;
+  --border-strong: #d0d5dd;
+  --text: #101828;
+  --text-muted: #475467;
+  --text-subtle: #667085;
+  --accent: #0e7490;
+  --accent-hover: #155e75;
+  --accent-soft: #e7f4f7;
   --accent-contrast: #ffffff;
-  --ok: #17784a;
-  --ok-soft: #e3f3ea;
-  --warn: #9a5800;
-  --warn-soft: #fbefdb;
-  --danger: #b8352b;
-  --danger-soft: #fbe8e6;
-  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
-  --shadow-md: 0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px -6px rgb(16 24 40 / 0.12);
-  --wash: radial-gradient(60rem 30rem at 85% -10%, #dfe8fb 0%, transparent 60%);
-
-  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --ok: #067647;
+  --ok-soft: #ecfdf3;
+  --warn: #b54708;
+  --warn-soft: #fef6e7;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --elev-xs: 0 1px 2px rgb(16 24 40 / 0.04);
+  --elev-sm: 0 1px 2px rgb(16 24 40 / 0.05), 0 1px 3px rgb(16 24 40 / 0.04);
+  --elev-md: 0 1px 3px rgb(16 24 40 / 0.05), 0 12px 32px -12px rgb(16 24 40 / 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --bg: #0d1015;
-    --surface: #151920;
-    --surface-sunken: #1b2029;
-    --border: #262c36;
-    --border-strong: #343c49;
-    --text: #e6e9ee;
-    --text-muted: #a1aab7;
-    --text-subtle: #7c8696;
-    --accent: #6e9dff;
-    --accent-hover: #8cb1ff;
-    --accent-soft: #1a2945;
-    --accent-contrast: #0a1222;
-    --ok: #4cc48a;
-    --ok-soft: #12301f;
-    --warn: #f0b45c;
-    --warn-soft: #362810;
-    --danger: #ff7c70;
-    --danger-soft: #3b1916;
-    --shadow-sm: none;
-    --shadow-md: 0 8px 28px -8px rgb(0 0 0 / 0.6);
-    --wash: radial-gradient(60rem 30rem at 85% -10%, #15213a 0%, transparent 60%);
+    --bg: #0b0d12;
+    --surface: #12151c;
+    --surface-sunken: #181c25;
+    --border: #232834;
+    --border-strong: #323947;
+    --text: #e7e9ee;
+    --text-muted: #a3aab8;
+    --text-subtle: #7d8595;
+    --accent: #45b7cb;
+    --accent-hover: #6cc9d9;
+    --accent-soft: #10272d;
+    --accent-contrast: #04161a;
+    --ok: #47cd89;
+    --ok-soft: #0d2a1c;
+    --warn: #f5b056;
+    --warn-soft: #33240d;
+    --danger: #f97066;
+    --danger-soft: #3a1512;
+    --elev-xs: none;
+    --elev-sm: none;
+    --elev-md: 0 12px 32px -12px rgb(0 0 0 / 0.7);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0d1015;
-  --surface: #151920;
-  --surface-sunken: #1b2029;
-  --border: #262c36;
-  --border-strong: #343c49;
-  --text: #e6e9ee;
-  --text-muted: #a1aab7;
-  --text-subtle: #7c8696;
-  --accent: #6e9dff;
-  --accent-hover: #8cb1ff;
-  --accent-soft: #1a2945;
-  --accent-contrast: #0a1222;
-  --ok: #4cc48a;
-  --ok-soft: #12301f;
-  --warn: #f0b45c;
-  --warn-soft: #362810;
-  --danger: #ff7c70;
-  --danger-soft: #3b1916;
-  --shadow-sm: none;
-  --shadow-md: 0 8px 28px -8px rgb(0 0 0 / 0.6);
-  --wash: radial-gradient(60rem 30rem at 85% -10%, #15213a 0%, transparent 60%);
+  --bg: #0b0d12;
+  --surface: #12151c;
+  --surface-sunken: #181c25;
+  --border: #232834;
+  --border-strong: #323947;
+  --text: #e7e9ee;
+  --text-muted: #a3aab8;
+  --text-subtle: #7d8595;
+  --accent: #45b7cb;
+  --accent-hover: #6cc9d9;
+  --accent-soft: #10272d;
+  --accent-contrast: #04161a;
+  --ok: #47cd89;
+  --ok-soft: #0d2a1c;
+  --warn: #f5b056;
+  --warn-soft: #33240d;
+  --danger: #f97066;
+  --danger-soft: #3a1512;
+  --elev-xs: none;
+  --elev-sm: none;
+  --elev-md: 0 12px 32px -12px rgb(0 0 0 / 0.7);
 }
 
-html {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  -webkit-font-smoothing: antialiased;
-}
+/*
+ * Base rules sit in the base layer so utilities can override them; unlayered rules would win over
+ * every utility, for example forcing the focus outline back onto the composer's textarea.
+ */
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+  }
 
-body {
-  min-height: 100dvh;
-  background: var(--wash), var(--bg);
-  background-attachment: fixed;
-}
+  body {
+    min-height: 100dvh;
+    background: var(--bg);
+  }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
-::selection {
-  background: var(--accent-soft);
+  ::selection {
+    background: var(--accent-soft);
+  }
 }

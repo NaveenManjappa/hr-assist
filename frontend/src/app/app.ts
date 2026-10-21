@@ -1,18 +1,19 @@
-import { DatePipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, signal } from '@angular/core';
 
-import { ChatStore } from './chat-store';
-import { ConnectionStatus } from './connection-status/connection-status';
 import { Conversation } from './conversation/conversation';
-import { EvidencePanel } from './evidence-panel/evidence-panel';
-import { ThemeToggle } from './theme-toggle/theme-toggle';
+import { Logo } from './logo/logo';
+import { Sidebar } from './sidebar/sidebar';
 
 @Component({
   selector: 'app-root',
-  imports: [ConnectionStatus, Conversation, DatePipe, EvidencePanel, ThemeToggle],
+  imports: [Conversation, Logo, Sidebar],
   templateUrl: './app.html',
-  styleUrl: './app.css',
+  host: {
+    class: 'block',
+    '(document:keydown.escape)': 'navOpen.set(false)',
+  },
 })
 export class App {
-  protected readonly asOfDate = inject(ChatStore).asOfDate;
+  /** Whether the sidebar drawer is open; below the lg breakpoint the sidebar is a drawer. */
+  protected readonly navOpen = signal(false);
 }
