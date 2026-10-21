@@ -1,37 +1,75 @@
-<form class="composer" (submit)="$event.preventDefault(); submit()">
-  <div class="as-of">
-    <label for="as-of-date">Answering as of</label>
-    <input
-      id="as-of-date"
-      #asOf
-      type="date"
-      required
-      [value]="asOfDate()"
-      (change)="changeAsOfDate(asOf.value)"
-    />
-  </div>
+<form
+  class="mx-auto mb-2 w-[calc(100%-2rem)] max-w-chat rounded-2xl border border-line-strong bg-surface shadow-md transition-[border-color,box-shadow] focus-within:border-accent/50 focus-within:shadow-[0_0_0_3px_var(--accent-soft),var(--elev-md)]"
+  (submit)="$event.preventDefault(); submit()"
+>
   <label class="sr-only" for="question">Your question</label>
   <textarea
     id="question"
     #question
     rows="2"
+    class="block w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-md leading-relaxed text-fg placeholder:text-subtle focus:outline-none"
     placeholder="Ask about leave, sickness, expenses, hybrid working…"
     [value]="draft()"
     (input)="draft.set(question.value)"
     (keydown.enter)="submitOnEnter($event)"
   ></textarea>
-  <div class="composer-footer">
-    <span class="composer-hint">Enter to ask · Shift+Enter for a new line</span>
-    <button type="submit" class="send" [disabled]="busy() || !draft().trim()">
+  <div class="flex items-center gap-3 px-2.5 pt-1 pb-2.5">
+    <div
+      class="inline-flex h-8 items-center gap-2 rounded-lg border border-line bg-surface-sunken/60 pr-1 pl-2.5 text-xs text-muted"
+      title="Questions are answered with the policies in force on this date"
+    >
+      <svg
+        class="size-[14px] flex-none text-subtle"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+      >
+        <rect x="3.5" y="5" width="17" height="15" rx="2" />
+        <path d="M3.5 10h17M8 3v4M16 3v4" />
+      </svg>
+      <label class="whitespace-nowrap max-[420px]:sr-only" for="as-of-date">Answering as of</label>
+      <input
+        id="as-of-date"
+        #asOf
+        type="date"
+        required
+        class="h-6 rounded-md bg-transparent px-1 text-xs font-medium text-fg scheme-light-dark focus-visible:outline-offset-0"
+        [value]="asOfDate()"
+        (change)="changeAsOfDate(asOf.value)"
+      />
+    </div>
+    <span class="ml-auto text-xs text-subtle max-md:hidden"
+      >Enter to ask · Shift+Enter for a new line</span
+    >
+    <button
+      type="submit"
+      class="inline-flex h-8 flex-none cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-medium text-accent-contrast shadow-xs transition-colors not-disabled:hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-subtle disabled:shadow-none max-md:ml-auto"
+      [disabled]="busy() || !draft().trim()"
+    >
       Ask
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      <svg
+        class="size-[15px]"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
     </button>
   </div>
 </form>
-<p class="logging-notice" data-testid="logging-notice">
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 11v5.5M12 7.5h.01" />
-  </svg>
-  <span>Questions are logged to improve this demo. Don't enter personal information.</span>
-</p>
+<footer
+  class="mx-auto grid w-[calc(100%-2rem)] max-w-chat justify-items-center gap-0.5 pt-1 pb-3 text-center text-2xs leading-[1.5] text-subtle"
+>
+  <p>Northstar Digital Services is a fictitious company created for this demo.</p>
+  <p data-testid="logging-notice">
+    Questions are logged to improve this demo. Don't enter personal information.
+  </p>
+</footer>

@@ -1,32 +1,69 @@
-<div class="status" data-testid="connection-status" [attr.data-state]="state()">
+<!-- --tone colours the status dot after the overall state; the pill itself stays neutral. -->
+<div
+  class="group/status relative w-full [--tone:var(--text-subtle)] data-[state=connected]:[--tone:var(--ok)] data-[state=degraded]:[--tone:var(--warn)] data-[state=offline]:[--tone:var(--danger)]"
+  data-testid="connection-status"
+  [attr.data-state]="state()"
+>
   <button
     type="button"
-    class="pill"
+    class="group/pill flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface pr-2 pl-2.5 text-sm font-medium whitespace-nowrap text-muted shadow-xs transition-colors hover:bg-surface-sunken hover:text-fg"
     aria-controls="connection-details"
     [attr.aria-expanded]="open()"
     (click)="open.set(!open())"
   >
-    <span class="dot" aria-hidden="true"></span>
-    <span class="label" aria-live="polite">{{ view().label }}</span>
-    <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+    <span
+      class="size-[7px] flex-none rounded-full bg-(--tone) shadow-[0_0_0_3px_color-mix(in_oklab,var(--tone)_18%,transparent)] group-data-[state=checking]/status:animate-breathe motion-reduce:animate-none"
+      aria-hidden="true"
+    ></span>
+    <span class="flex-1 truncate text-left" aria-live="polite">{{ view().label }}</span>
+    <svg
+      class="size-[14px] flex-none text-subtle transition-transform group-aria-expanded/pill:rotate-180"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="m6 15 6-6 6 6" />
+    </svg>
   </button>
 
   @if (open()) {
-    <div id="connection-details" class="panel" role="region" aria-label="Service status">
-      <p class="panel-title">Service status</p>
-      <ul class="services">
-        <li [attr.data-service]="view().api">
-          <span class="service-dot" aria-hidden="true"></span>
-          <span class="service-name">HR Assist API</span>
-          <span class="service-state">{{ serviceLabels[view().api] }}</span>
+    <div
+      id="connection-details"
+      class="absolute bottom-[calc(100%+8px)] left-0 z-20 w-64 animate-rise rounded-xl border border-line bg-surface p-4 shadow-md motion-reduce:animate-none"
+      role="region"
+      aria-label="Service status"
+    >
+      <p class="mb-3 eyebrow">Service status</p>
+      <ul class="grid gap-2.5">
+        <li
+          class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 text-sm [--service-tone:var(--text-subtle)] data-[service=down]:[--service-tone:var(--danger)] data-[service=up]:[--service-tone:var(--ok)]"
+          [attr.data-service]="view().api"
+        >
+          <span class="size-[7px] rounded-full bg-(--service-tone)" aria-hidden="true"></span>
+          <span class="text-fg">HR Assist API</span>
+          <span class="text-xs text-(--service-tone)">{{ serviceLabels[view().api] }}</span>
         </li>
-        <li [attr.data-service]="view().qdrant">
-          <span class="service-dot" aria-hidden="true"></span>
-          <span class="service-name">Policy index <span class="hint">Qdrant</span></span>
-          <span class="service-state">{{ serviceLabels[view().qdrant] }}</span>
+        <li
+          class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 text-sm [--service-tone:var(--text-subtle)] data-[service=down]:[--service-tone:var(--danger)] data-[service=up]:[--service-tone:var(--ok)]"
+          [attr.data-service]="view().qdrant"
+        >
+          <span class="size-[7px] rounded-full bg-(--service-tone)" aria-hidden="true"></span>
+          <span class="text-fg"
+            >Policy index <span class="ml-1 font-mono text-2xs text-subtle">Qdrant</span></span
+          >
+          <span class="text-xs text-(--service-tone)">{{ serviceLabels[view().qdrant] }}</span>
         </li>
       </ul>
-      <button type="button" class="recheck" [disabled]="health.isLoading()" (click)="recheck()">
+      <button
+        type="button"
+        class="mt-4 h-8 w-full cursor-pointer rounded-lg border border-line bg-surface text-sm font-medium text-fg transition-colors not-disabled:hover:bg-surface-sunken disabled:cursor-progress disabled:text-subtle"
+        [disabled]="health.isLoading()"
+        (click)="recheck()"
+      >
         {{ health.isLoading() ? 'Checking…' : 'Check again' }}
       </button>
     </div>

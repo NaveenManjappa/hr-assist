@@ -17,7 +17,6 @@ function readStoredPreference(): ThemePreference {
 @Component({
   selector: 'app-theme-toggle',
   templateUrl: './theme-toggle.html',
-  styleUrl: './theme-toggle.css',
 })
 export class ThemeToggle {
   protected readonly options: { value: ThemePreference; label: string }[] = [

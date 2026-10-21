@@ -1,11 +1,17 @@
 @if (style().label; as label) {
-  <p class="reply-label" data-testid="reply-label">{{ label }}</p>
+  <p
+    class="mb-2 inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium ring-1"
+    [class]="style().labelTone"
+    data-testid="reply-label"
+  >
+    {{ label }}
+  </p>
 }
-<p class="reply-message">
+<p class="reply-message text-md leading-[1.7] wrap-anywhere whitespace-pre-line text-fg">
   @for (segment of segments(); track $index) {
     @if ('marker' in segment) {
       <a
-        class="marker"
+        class="mx-0.5 inline-grid h-[1.15rem] min-w-[1.15rem] place-items-center rounded-xs bg-accent-soft px-1 align-[0.12em] font-mono text-2xs leading-none font-medium text-accent no-underline transition-colors hover:bg-accent hover:text-accent-contrast focus-visible:bg-accent focus-visible:text-accent-contrast"
         data-testid="marker"
         [href]="'#' + cardId(segment.marker)"
         [attr.aria-label]="'Citation ' + segment.marker"
@@ -18,49 +24,162 @@
   }
 </p>
 @if (style().nextStep; as nextStep) {
-  <p class="next-step" data-testid="next-step">{{ nextStep }}</p>
+  <p class="mt-2.5 text-sm text-muted" data-testid="next-step">{{ nextStep }}</p>
 }
 @if (reply().citations.length > 0) {
-  <p class="sources-label">Citations</p>
-  <ol class="sources">
+  <p class="mt-5 eyebrow">
+    Citations <span class="ml-1 font-normal tracking-normal">{{ reply().citations.length }}</span>
+  </p>
+  <ol class="mt-2 grid gap-2">
     @for (citation of reply().citations; track $index) {
       @let n = $index + 1;
       @let open = expanded().has(n);
-      <li class="card" data-testid="source-card" [id]="cardId(n)">
+      <li
+        class="scroll-m-4 overflow-hidden rounded-lg border border-line bg-surface shadow-xs transition-[border-color,box-shadow] target:border-accent/60 target:shadow-[0_0_0_3px_var(--accent-soft)] motion-reduce:transition-none"
+        data-testid="source-card"
+        [id]="cardId(n)"
+      >
         <button
           type="button"
-          class="card-head"
+          class="group flex w-full cursor-pointer items-start gap-3 px-3.5 py-3 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:-outline-offset-2"
           data-testid="toggle-snippet"
           [attr.aria-expanded]="open"
           [attr.aria-controls]="cardId(n) + '-snippet'"
           (click)="toggle(n)"
         >
-          <span class="card-number">{{ n }}</span>
-          <span class="card-text">
-            <span class="card-title">
+          <span
+            class="mt-px grid size-[20px] flex-none place-items-center rounded-xs bg-accent-soft font-mono text-2xs font-medium text-accent"
+            >{{ n }}</span
+          >
+          <span class="grid min-w-0 flex-1 gap-1">
+            <span class="card-title text-sm leading-snug font-medium text-fg">
               {{ citation.title }}
               @if (citation.status === 'superseded') {
-                <span class="badge-superseded" data-testid="superseded">Superseded</span>
+                <span
+                  class="ml-1.5 inline-flex rounded-full bg-warn-soft px-1.75 py-px align-[0.08em] text-2xs font-medium whitespace-nowrap text-warn ring-1 ring-warn/20"
+                  data-testid="superseded"
+                  >Superseded</span
+                >
               }
             </span>
-            <span class="card-meta"
-              >{{ citation.document_id }} · {{ citation.document_version }} ·
-              {{ citation.section }} · {{ location(citation) }}</span
+            <span class="text-xs wrap-anywhere text-subtle"
+              ><span class="font-mono">{{ citation.document_id }}</span> ·
+              {{ citation.document_version }} · {{ citation.section }} ·
+              {{ location(citation) }}</span
             >
           </span>
-          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            class="mt-0.5 size-[16px] flex-none text-subtle transition-transform group-aria-expanded:rotate-180 motion-reduce:transition-none"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <path d="m6 9 6 6 6-6" />
           </svg>
         </button>
         @if (open) {
-          <blockquote
-            class="snippet"
+          <div
+            class="grid gap-2.5 border-t border-line bg-surface-sunken/50 px-3.5 py-3.5 text-sm leading-relaxed text-muted sm:pl-11.5"
             data-testid="snippet"
             [id]="cardId(n) + '-snippet'"
-            [textContent]="citation.snippet"
-          ></blockquote>
+          >
+            @for (block of snippets()[$index]; track $index) {
+              @switch (block.kind) {
+                @case ('heading') {
+                  <p class="font-semibold text-fg">
+                    <ng-container
+                      [ngTemplateOutlet]="inline"
+                      [ngTemplateOutletContext]="{ $implicit: block.content, plain: true }"
+                    />
+                  </p>
+                }
+                @case ('paragraph') {
+                  <p class="wrap-anywhere">
+                    <ng-container
+                      [ngTemplateOutlet]="inline"
+                      [ngTemplateOutletContext]="{ $implicit: block.content }"
+                    />
+                  </p>
+                }
+                @case ('list') {
+                  @if (block.ordered) {
+                    <ol class="grid list-decimal gap-1 pl-5" [attr.start]="block.start">
+                      @for (item of block.items; track $index) {
+                        <li class="pl-1">
+                          <ng-container
+                            [ngTemplateOutlet]="inline"
+                            [ngTemplateOutletContext]="{ $implicit: item }"
+                          />
+                        </li>
+                      }
+                    </ol>
+                  } @else {
+                    <ul class="grid list-disc gap-1 pl-5 marker:text-subtle">
+                      @for (item of block.items; track $index) {
+                        <li class="pl-1">
+                          <ng-container
+                            [ngTemplateOutlet]="inline"
+                            [ngTemplateOutletContext]="{ $implicit: item }"
+                          />
+                        </li>
+                      }
+                    </ul>
+                  }
+                }
+                @case ('table') {
+                  <div class="overflow-x-auto rounded-md border border-line bg-surface">
+                    <table class="w-full border-collapse text-xs leading-normal">
+                      @if (block.head; as head) {
+                        <thead class="border-b border-line bg-surface-sunken">
+                          <tr>
+                            @for (cell of head; track $index) {
+                              <th class="px-3 py-2 text-left align-bottom font-medium text-fg">
+                                <ng-container
+                                  [ngTemplateOutlet]="inline"
+                                  [ngTemplateOutletContext]="{ $implicit: cell, plain: true }"
+                                />
+                              </th>
+                            }
+                          </tr>
+                        </thead>
+                      }
+                      <tbody class="divide-y divide-line">
+                        @for (row of block.rows; track $index) {
+                          <tr>
+                            @for (cell of row; track $index) {
+                              <td class="min-w-24 px-3 py-2 align-top">
+                                <ng-container
+                                  [ngTemplateOutlet]="inline"
+                                  [ngTemplateOutletContext]="{ $implicit: cell }"
+                                />
+                              </td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              }
+            }
+          </div>
         }
       </li>
     }
   </ol>
 }
+
+<!-- The text runs of a snippet block; `plain` drops bold where the block is bold already. -->
+<ng-template #inline let-content let-plain="plain">
+  @for (run of content; track $index) {
+    @if (run.bold && !plain) {
+      <strong class="font-semibold text-fg">{{ run.text }}</strong>
+    } @else {
+      {{ run.text }}
+    }
+  }
+</ng-template>
