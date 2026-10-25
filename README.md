@@ -92,6 +92,8 @@ Architecture decision records:
 
 How HR Assist is deployed, and why, is explained step by step in the [deployment guide](docs/deployment.md).
 
+The [developer guide](docs/developer-guide.md) explains the whole back end: every module, endpoint, setting and pipeline, with the decisions, trade-offs and known gaps.
+
 ## Running locally
 
 ### Prerequisites
