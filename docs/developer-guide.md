@@ -279,7 +279,7 @@ The code defines four small interfaces (ports). Each has one production implemen
 
 The ingestion side has two more ports, `Parser` (`ingestion/parser.py:21`) and `ChunkingStrategy` (`ingestion/chunking.py:19`). They make it possible to add a new parser or chunker without a change to the pipeline.
 
-**Trade-off.** Protocols add a little indirection. In return, all 71 API tests run in about 15 seconds with no network, no API keys and no cost.
+**Trade-off.** Protocols add a little indirection. In return, all 61 API tests run in about 10 seconds with no network, no API keys and no cost.
 
 ### 3.4 Repository layout
 
@@ -335,7 +335,7 @@ Important details:
 
 | Variable | Type and rule | Default | Used by | Notes |
 | --- | --- | --- | --- | --- |
-| `APP_ENV` | string, required | none | `collection_name` | Prefix of the Qdrant collection, for example `dev` or `prod`. The value `prod` also turns off the API pages ([8.5](#85-interactive-api-pages)). |
+| `APP_ENV` | string, required | none | `collection_name` | Prefix of the Qdrant collection, for example `dev` or `prod`. |
 | `OPENAI_API_KEY` | secret, required | none | Chat model, embeddings | |
 | `CHAT_MODEL` | string | `gpt-6-luna` | `OpenAIChatModel` | Any OpenAI chat model with structured output. |
 | `MAX_OUTPUT_TOKENS` | positive integer | `800` | `OpenAIChatModel` | Caps the reply length and the cost. |
@@ -827,7 +827,7 @@ The server is **stateless**. It keeps no conversation. The client sends the hist
 | 503 | `upstream_unavailable` | Qdrant or OpenAI failed, timed out, or returned output that the code cannot read. |
 | 500 | `internal_error` | An unexpected exception. |
 
-**Try it.** Outside production, the easiest way is the Scalar page at <http://localhost:8000/scalar> (see [8.5](#85-interactive-api-pages)). Open **Chat**, click **Test Request**, edit the body and send it. From a terminal or a script, use curl:
+**Example with curl:**
 
 ```sh
 curl -s -X POST http://localhost:8000/api/chat \
@@ -891,34 +891,11 @@ A 503 reply never contains the original exception text. The text can contain int
 
 In production, the page and the API share one origin through the Firebase rewrite. So production does not use CORS at all. CORS matters only in local development, where the UI is on port 4200 and the API is on port 8000.
 
-### 8.5 Interactive API pages
+### 8.5 Generated API documentation
 
-> **Definition.** OpenAPI is a standard, machine-readable format that describes an HTTP API: its paths, methods, request bodies, responses and their schemas. FastAPI generates this description from the route functions and the Pydantic models.
->
-> **Simple explanation.** The code already says what each endpoint takes and returns. FastAPI writes that down as one JSON file. Tools read the file and draw a page where you can read about each endpoint and send test requests.
->
-> **Analogy.** A restaurant menu that the kitchen prints from its own recipes. It is always correct, because nobody types it by hand. Different designers can lay out the same menu in different ways.
+FastAPI publishes an OpenAPI schema at `/openapi.json` and interactive documentation at `/docs` and `/redoc`. They are on by default. Locally, open <http://localhost:8000/docs> to try the endpoints.
 
-Outside production, the API serves the schema and three pages that read it:
-
-| Path | What it is | Use it to |
-| --- | --- | --- |
-| `/scalar` | Scalar API reference | Read the endpoints, send test requests, and copy request code for curl, Python, Node.js and other clients. The recommended page. |
-| `/docs` | Swagger UI (FastAPI default) | Send test requests with "Try it out". |
-| `/redoc` | ReDoc (FastAPI default) | Read the schema. It cannot send requests. |
-| `/openapi.json` | The OpenAPI schema | Import into another tool, such as Postman or Bruno, or generate a client. |
-
-Locally, start the back end and open <http://localhost:8000/scalar>. The schema lists only `/api/health` and `/api/chat`. The pages themselves are not in it.
-
-A test request from these pages is a real request. A chat calls OpenAI, costs tokens and counts against the rate limits, the same as a chat from the UI.
-
-**Production serves none of these paths.** `Settings.api_docs_enabled` is false when `APP_ENV` is `prod`. `create_app` then passes `None` for `openapi_url`, `docs_url` and `redoc_url`, and does not add the `/scalar` route. So each of these paths returns 404 there. The reason: the direct `run.app` URL is public ([ADR 0003](adr/0003-cloud-run-behind-firebase-hosting.md)), and a public schema and test page make it easier for a bot to find and call the API. The risk was small, because the schema has no secrets, but the pages give no benefit in production.
-
-Details of the Scalar page (`_scalar` in `api/app.py`):
-
-- It comes from the `scalar-fastapi` package, a runtime dependency. The package is small and has no other dependencies of its own.
-- It loads the Scalar JavaScript from the jsDelivr CDN in your browser. So the page needs internet access, even though the API runs locally.
-- It has `telemetry=False`, so Scalar does not record the requests that you send.
+These paths are not under `/api/`, so the public site does not forward them. The direct Cloud Run URL serves them (see [15.3](#153-api-and-code)).
 
 ---
 
@@ -1272,7 +1249,7 @@ CI runs the same commands on each pull request and each push to `main`. CI also 
 
 ### 11.3 A hidden network dependency
 
-`StructureV1` calls `tiktoken.get_encoding("o200k_base")`. On the first call, `tiktoken` downloads the encoding file from the internet and caches it. So `test_ingestion.py` and `hr-assist ingest` need internet access the first time on a new machine. In a sandbox that blocks this download, 24 ingestion tests fail with a proxy error, and the other 71 tests pass. The README says "no network needed", which is true only after the cache exists. To work fully offline, set `TIKTOKEN_CACHE_DIR` to a folder that already holds the file.
+`StructureV1` calls `tiktoken.get_encoding("o200k_base")`. On the first call, `tiktoken` downloads the encoding file from the internet and caches it. So `test_ingestion.py` and `hr-assist ingest` need internet access the first time on a new machine. In a sandbox that blocks this download, 24 ingestion tests fail with a proxy error, and the other 61 tests pass. The README says "no network needed", which is true only after the cache exists. To work fully offline, set `TIKTOKEN_CACHE_DIR` to a folder that already holds the file.
 
 ### 11.4 What the tests do not cover
 
@@ -1404,7 +1381,6 @@ This table collects the decisions of the whole system. The ADRs and the deployme
 | 20 | Secrets only in Secret Manager | One place to rotate; never in GitHub | GitHub secrets copied to Cloud Run | More IAM set-up |
 | 21 | Tracing on in production, with a notice | Real questions become evaluation data | Tracing off | Privacy: questions and IPs are logged |
 | 22 | Pure ASGI middleware, custom 500 layer | Headers on every reply, including 500 | `BaseHTTPMiddleware`, default 500 | More low-level code |
-| 23 | Scalar, Swagger UI and ReDoc outside production only | Easy manual testing for developers; nothing extra to find on the public URL | Pages on everywhere; a separate API client only | Production has no live schema; use a local or dev instance |
 
 ---
 
@@ -1444,6 +1420,7 @@ The README lists the main product limits. This section repeats them and adds gap
 | Limit | Effect | Possible fix |
 | --- | --- | --- |
 | **404 and 405 use FastAPI's default shape.** | `{"detail": "Not Found"}`, not the shared error envelope. | Register a handler for Starlette's `HTTPException`. |
+| **OpenAPI docs are public on `run.app`.** | `/docs` and `/openapi.json` show the API schema. The risk is low (the schema has no secrets). | Pass `docs_url=None, redoc_url=None, openapi_url=None` in production. |
 | **The public `run.app` URL.** | Bots can skip Firebase. With a forged `X-Forwarded-For`, they can avoid the per-IP limits on that path. | Firebase App Check (planned for Stage 5). |
 | **Client-controlled history and `as_of_date`.** | A client can send fake "assistant" turns or any date. The demo has no private data, so the risk is low. | Keep it in mind if the system ever holds private data. |
 | **Server date when `as_of_date` is missing.** | `date.today()` uses the server's time zone (UTC on Cloud Run). | The UI always sends the local date, so this matters only for other clients. |
@@ -1585,7 +1562,7 @@ Build the evaluation harness and record a baseline. Then, guided by the results:
 | `answering/prompt.py` | The system prompt, `PROMPT_VERSION` and `build_prompt`. |
 | `answering/answerer.py` | `Answerer`, `Retriever` and `ChatModel` Protocols, renumbering, Citations, snippets. |
 | `answering/adapters.py` | `QdrantRetriever` and `OpenAIChatModel`. |
-| `api/app.py` | `create_app`, the composition root, and the Scalar page. |
+| `api/app.py` | `create_app`, the composition root. |
 | `api/chat.py` | `POST /api/chat` and `client_ip`. |
 | `api/health.py` | `GET /api/health`. |
 | `api/rate_limit.py` | `RateLimiter`, `RateLimited`, `Clock`. |

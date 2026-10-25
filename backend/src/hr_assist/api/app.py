@@ -3,8 +3,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-from scalar_fastapi import get_scalar_api_reference
 
 from hr_assist.answering import Answerer, ChatModel, Retriever
 from hr_assist.answering.adapters import OpenAIChatModel, QdrantRetriever
@@ -46,17 +44,7 @@ def create_app(
         for cleanup in cleanups:
             await cleanup()
 
-    # The direct run.app URL is public, so prod publishes no schema or API pages (ADR 0003).
-    docs = settings.api_docs_enabled
-    app = FastAPI(
-        title="HR Assist",
-        lifespan=lifespan,
-        openapi_url="/openapi.json" if docs else None,
-        docs_url="/docs" if docs else None,
-        redoc_url="/redoc" if docs else None,
-    )
-    if docs:
-        app.add_api_route("/scalar", _scalar, include_in_schema=False)
+    app = FastAPI(title="HR Assist", lifespan=lifespan)
     app.state.settings = settings
     app.state.vector_store = vector_store
     app.state.answerer = Answerer(retriever, chat_model)
@@ -76,10 +64,3 @@ def create_app(
     app.include_router(health.router)
     app.include_router(chat.router)
     return app
-
-
-async def _scalar() -> HTMLResponse:
-    """The Scalar API reference, which can also send requests to the API."""
-    return get_scalar_api_reference(
-        openapi_url="/openapi.json", title="HR Assist API", telemetry=False
-    )
