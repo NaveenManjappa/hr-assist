@@ -149,6 +149,8 @@ uv run uvicorn hr_assist.api.app:create_app --factory --reload
 
 The API listens on <http://localhost:8000>. A request to <http://localhost:8000/api/health> should return `{"status":"ok","api":"up","qdrant":"up"}`.
 
+To try the API in a browser, open the Scalar page at <http://localhost:8000/scalar>. It lists both endpoints and can send test requests. Swagger UI (`/docs`) and ReDoc (`/redoc`) are there too. These pages are served everywhere except when `APP_ENV` is `prod`.
+
 #### Run the container locally
 
 This is the same image that Cloud Run serves. From the repo root:

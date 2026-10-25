@@ -38,3 +38,8 @@ class Settings(BaseSettings):
     def collection_name(self) -> str:
         """Names the index by environment, chunking version and embedding model (ADR 0001, 0002)."""
         return f"{self.app_env}-{self.chunking_version}-{self.embedding_model}"
+
+    @property
+    def api_docs_enabled(self) -> bool:
+        """Serves the OpenAPI schema and the Swagger, ReDoc and Scalar pages everywhere but prod."""
+        return self.app_env != "prod"
