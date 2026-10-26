@@ -24,14 +24,14 @@ flowchart LR
         PDF[Policy Documents<br/>PDF] --> P[Parse<br/>PyMuPDF4LLM → Markdown<br/>python-pptx → one unit per slide]
         PPTX[Summary Decks] --> P
         P --> N[Normalise<br/>strip running header/footer,<br/>check Document ID + Version]
-        N --> C[Chunk<br/>structure_v1: one chunk per<br/>numbered section or slide]
+        N --> C[Chunk<br/>chunking_v2: one chunk per<br/>numbered section or slide]
         C --> E1[Embed<br/>text-embedding-3-small]
     end
 
     E1 --> Q[(Qdrant<br/>collection:<br/>env-chunking-embedding)]
 
     subgraph Serving["Serving (FastAPI)"]
-        API["POST /api/chat"] --> R[Retrieve top 8 chunks<br/>for the latest message]
+        API["POST /api/chat"] --> R[Retrieve top 3 chunks<br/>for the latest message]
         R --> Q
         R --> G[Generate<br/>one structured-output call:<br/>Response Type, message, Citations]
         G --> API
@@ -75,7 +75,7 @@ Code layout:
 | --- | --- | --- |
 | PDF loading | `PyMuPDF4LLMLoader` (Markdown output) | Keeps headings and table rows, which plain text extraction loses. [ADR 0001](docs/adr/0001-document-loading-and-chunking.md) |
 | Document facts | Hand-written Corpus Manifest | Document kind and Effective Period drive precedence and date reasoning, so they must be explicit and reviewable. [ADR 0001](docs/adr/0001-document-loading-and-chunking.md) |
-| Chunking | Structure-aware, one chunk per numbered section (`structure_v1`) | Keeps rules with their conditions and tables with their captions. [ADR 0001](docs/adr/0001-document-loading-and-chunking.md) |
+| Chunking | Structure-aware, one chunk per numbered section, split at worked-example headings when oversized (`chunking_v2`) | Keeps rules with their conditions, tables with their captions, and each worked example whole. [ADR 0001](docs/adr/0001-document-loading-and-chunking.md), [ADR 0005](docs/adr/0005-split-oversized-sections-at-unnumbered-headings.md) |
 | Models | OpenAI `gpt-6-luna` and `text-embedding-3-small`, both configurable | One provider, low cost. [ADR 0002](docs/adr/0002-openai-models-and-two-step-rag.md) |
 | Orchestration | Two-step RAG with LangChain, no agent or LangGraph | Every question needs retrieval, so letting a model decide whether to search adds nothing. [ADR 0002](docs/adr/0002-openai-models-and-two-step-rag.md) |
 | Vector store | Qdrant (Qdrant Cloud free tier) | Required by the project brief. |
@@ -120,6 +120,9 @@ Fill in `.env` at the repo root. The backend reads it no matter which directory 
 | `QDRANT_API_KEY` | yes | |
 | `CHAT_MODEL` | no | Defaults to `gpt-6-luna` |
 | `MAX_OUTPUT_TOKENS` | no | Caps the length of each reply. Defaults to `800`. |
+| `CHUNK_MAX_TOKENS`, `CHUNK_OVERLAP_TOKENS` | no | Part of the chunking strategy, with `CHUNKING_VERSION`: override its size limit and overlap at ingestion. Only the version names the collection, so re-ingesting with new sizes under the same version replaces that collection. |
+| `RETRIEVAL_K` | no | Chunks retrieved for each question. Defaults to `3`. |
+| `HISTORY_TURNS` | no | Recent messages kept in the prompt. Defaults to `5`. |
 | `EMBEDDING_MODEL` | no | Defaults to `text-embedding-3-small`. Changing it means re-ingesting. |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | no | Set `LANGSMITH_TRACING=true` to trace each request. EU accounts also need `LANGSMITH_ENDPOINT`. |
 | `FRONTEND_ORIGIN` | no | The CORS origin. Defaults to `http://localhost:4200`. |
@@ -138,7 +141,7 @@ uv sync
 uv run hr-assist ingest
 ```
 
-This parses every Source Document in [data/manifest.yaml](data/manifest.yaml), prints the chunk count for each document, and rebuilds the collection (for example `dev-structure_v1-text-embedding-3-small`). It takes about a minute and costs a fraction of a cent in embeddings. Run it again whenever the manifest, the documents or the chunking change.
+This parses every Source Document in [data/manifest.yaml](data/manifest.yaml), prints the chunk count for each document, and rebuilds the collection (for example `dev-chunking_v2-text-embedding-3-small`). It takes about a minute and costs a fraction of a cent in embeddings. Run it again whenever the manifest, the documents or the chunking change.
 
 ### 3. Run the backend
 
@@ -221,7 +224,7 @@ GitHub runs scheduled workflows only from the default branch, and turns them off
 ## Known limitations
 
 - **No evals yet.** The question set and gold answers in [evals/](evals/) haven't been wired into an automated evaluation, so answer quality isn't measured. That is Stage 3.
-- **Short follow-ups retrieve poorly.** Retrieval uses only the latest message. A follow-up such as "and for part-timers?" searches on those words alone, without the earlier question. The last 6 messages do reach the model, but the chunks it needs may not have been retrieved.
+- **Short follow-ups retrieve poorly.** Retrieval uses only the latest message. A follow-up such as "and for part-timers?" searches on those words alone, without the earlier question. The last 5 messages do reach the model, but the chunks it needs may not have been retrieved.
 - **No metadata filtering.** Retrieval is pure vector similarity. Superseded Source Documents and Summary Decks compete with current Policy Documents for the top 8 places, and only the prompt decides which one prevails.
 - **No streaming.** The reply appears all at once, after the full answer has been generated.
 - **The demo is rate-limited.** Each IP can send 10 chats a minute and 100 a day, and the whole demo answers at most 1000 a day. Beyond that, chats are rejected until the window resets (daily limits reset at midnight UTC). The OpenAI project also stops at $10 a month.

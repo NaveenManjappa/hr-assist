@@ -47,7 +47,9 @@ def create_app(
     app = FastAPI(title="HR Assist", lifespan=lifespan)
     app.state.settings = settings
     app.state.vector_store = vector_store
-    app.state.answerer = Answerer(retriever, chat_model)
+    app.state.answerer = Answerer(
+        retriever, chat_model, settings.retrieval_k, settings.history_turns
+    )
     app.state.rate_limiter = RateLimiter(settings, clock)
     register_error_handlers(app)
     app.add_middleware(InternalErrorMiddleware)

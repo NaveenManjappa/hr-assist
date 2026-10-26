@@ -8,16 +8,27 @@ from hr_assist.settings import Settings
 
 
 def ingest(manifest: Path) -> None:
-    from hr_assist.ingestion import StructureV1, build_chunks
+    from hr_assist.ingestion import STRATEGIES, build_chunks
     from hr_assist.ingestion.index import rebuild_index
 
     settings = Settings()
-    strategy = StructureV1()
-    if strategy.version != settings.chunking_version:
+    if settings.chunking_version not in STRATEGIES:
         raise SystemExit(
             f"CHUNKING_VERSION is {settings.chunking_version}, "
-            f"but ingestion builds {strategy.version}"
+            f"but ingestion only builds {', '.join(STRATEGIES)}"
         )
+    sizes = {
+        name: value
+        for name, value in [
+            ("max_tokens", settings.chunk_max_tokens),
+            ("overlap_tokens", settings.chunk_overlap_tokens),
+        ]
+        if value is not None
+    }
+    try:
+        strategy = STRATEGIES[settings.chunking_version](**sizes)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
     chunks = build_chunks(load_manifest(manifest), strategy=strategy)
     for (document_id, version), count in Counter(

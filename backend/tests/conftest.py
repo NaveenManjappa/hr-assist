@@ -62,7 +62,7 @@ def make_chunk(
             section_path=["3 Annual leave", f"{section_number} {section_title}"],
             page_start=page,
             page_end=page,
-            chunking_version="structure_v1",
+            chunking_version="chunking_v1",
         ),
     )
 

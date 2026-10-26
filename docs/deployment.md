@@ -186,7 +186,7 @@ flowchart LR
     B --> C[Read OpenAI + Qdrant keys<br/>from Secret Manager]
     C --> D["APP_ENV=prod<br/>uv run hr-assist ingest"]
     D --> E[Parse, chunk and embed<br/>every Source Document<br/>in data/manifest.yaml]
-    E --> F[(Rebuild Qdrant collection<br/>prod-structure_v1-text-embedding-3-small)]
+    E --> F[(Rebuild Qdrant collection<br/>prod-chunking_v2-text-embedding-3-small)]
     F --> G[Log: chunk count per document]
 ```
 
@@ -195,7 +195,7 @@ flowchart LR
 - **Once before going live.** Until it has run, the `prod-…` collection doesn't exist, and every chat fails with `503 upstream_unavailable` ("Searching the policy index failed."), while `/api/health` still says ok.
 - **Again after changing** `data/manifest.yaml`, the documents or the chunking.
 
-**How to check it worked.** The log ends with one line per Source Document, then `Rebuilt prod-structure_v1-text-embedding-3-small with 405 chunks`. That total matches the local dev collection on 2026-10-20. A different total means the documents or chunking changed, which is only expected if you changed them. Then ask the smoke question in the live app: "How much annual leave do I get after 4 years?"
+**How to check it worked.** The log ends with one line per Source Document, then `Rebuilt prod-chunking_v2-text-embedding-3-small with 408 chunks`. That total matches the local dev collection on 2026-10-26. A different total means the documents or chunking changed, which is only expected if you changed them. Then ask the smoke question in the live app: "How much annual leave do I get after 4 years?"
 
 **Details.**
 

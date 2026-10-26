@@ -17,7 +17,14 @@ class Settings(BaseSettings):
     chat_model: str = "gpt-6-luna"
     max_output_tokens: PositiveInt = 800
     embedding_model: str = "text-embedding-3-small"
-    chunking_version: str = "structure_v1"
+    # The chunking strategy: its version, and optionally its size limit and overlap. Unset sizes
+    # take the version's own defaults (chunking_v1: 500/60, chunking_v2: 500/100). Only the
+    # version names the collection, so change it too if you want to keep the old chunks.
+    chunking_version: str = "chunking_v2"
+    chunk_max_tokens: PositiveInt | None = None
+    chunk_overlap_tokens: NonNegativeInt | None = None
+    retrieval_k: PositiveInt = 3
+    history_turns: PositiveInt = 5
 
     qdrant_url: str
     qdrant_api_key: SecretStr

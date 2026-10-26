@@ -25,7 +25,7 @@ def app_with_probe_routes(settings: Settings) -> FastAPI:
     @app.get("/probe/upstream-with-cause")
     async def upstream_with_cause() -> None:
         try:
-            raise ConnectionError("Collection prod-structure_v1 not found")
+            raise ConnectionError("Collection prod-chunking_v1 not found")
         except ConnectionError as exc:
             raise UpstreamError("Searching the policy index failed.") from exc
 
@@ -95,5 +95,5 @@ def test_an_upstream_failure_logs_its_cause_but_keeps_it_out_of_the_response(
     assert response.json()["error"]["message"] == "Searching the policy index failed."
     assert "not found" not in response.text
     [record] = [r for r in app_logs.records if r.levelno == logging.ERROR]
-    assert "Collection prod-structure_v1 not found" in app_logs.text
+    assert "Collection prod-chunking_v1 not found" in app_logs.text
     assert record.request_id == response.headers["x-request-id"]  # type: ignore[attr-defined]

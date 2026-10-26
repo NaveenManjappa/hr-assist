@@ -112,7 +112,7 @@ HR Assist uses `text-embedding-3-small`, which gives vectors of 1,536 numbers.
 
 > **Definition.** A vector database stores vectors with their payloads and finds the stored vectors that are nearest to a query vector. Cosine similarity is the cosine of the angle between two vectors. A value near 1 means that the vectors point in the same direction.
 >
-> **Simple explanation.** Qdrant keeps one vector for each chunk. For a question, it finds the 8 chunks whose vectors point most nearly in the same direction as the question's vector.
+> **Simple explanation.** Qdrant keeps one vector for each chunk. For a question, it finds the 3 chunks whose vectors point most nearly in the same direction as the question's vector.
 >
 > **Analogy.** A librarian who sorts books by topic, not by title. You describe what you want, and the librarian gives you the 8 nearest books on the shelf.
 
@@ -340,7 +340,11 @@ Important details:
 | `CHAT_MODEL` | string | `gpt-6-luna` | `OpenAIChatModel` | Any OpenAI chat model with structured output. |
 | `MAX_OUTPUT_TOKENS` | positive integer | `800` | `OpenAIChatModel` | Caps the reply length and the cost. |
 | `EMBEDDING_MODEL` | string | `text-embedding-3-small` | Retriever, ingestion, `collection_name` | A change needs a new ingestion. |
-| `CHUNKING_VERSION` | string | `structure_v1` | `collection_name`, CLI check | Must equal the version of the strategy that the CLI uses. |
+| `CHUNK_MAX_TOKENS` | positive integer | unset (strategy default: 500 for v1 and v2) | CLI strategy choice | Overrides the chunk size limit of the `CHUNKING_VERSION` strategy. Not part of the collection name. |
+| `CHUNK_OVERLAP_TOKENS` | non-negative integer | unset (strategy default: 60 for v1, 100 for v2) | CLI strategy choice | Overrides the overlap. Must be smaller than the size limit. Not part of the collection name. |
+| `RETRIEVAL_K` | positive integer | `3` | `Answerer` | Chunks retrieved for each question. |
+| `HISTORY_TURNS` | positive integer | `5` | `Answerer` | Recent messages kept in the prompt. |
+| `CHUNKING_VERSION` | string | `chunking_v2` | `collection_name`, CLI strategy choice | Chooses the strategy the CLI builds (`chunking_v1` or `chunking_v2`). The API must use the same value to read that collection. |
 | `QDRANT_URL` | string, required | none | All Qdrant clients | Not secret. |
 | `QDRANT_API_KEY` | secret, required | none | All Qdrant clients | |
 | `LANGSMITH_API_KEY` | secret, optional | none | `configure_tracing` | |
@@ -358,7 +362,7 @@ Important details:
 ```python
 # settings.py:38
 f"{self.app_env}-{self.chunking_version}-{self.embedding_model}"
-# for example: prod-structure_v1-text-embedding-3-small
+# for example: prod-chunking_v2-text-embedding-3-small
 ```
 
 The name includes three facts. Each fact makes the index incompatible if it changes:
@@ -463,7 +467,7 @@ The manifest is hand-written, so it can drift from the files. Ingestion checks e
 
 ```mermaid
 flowchart TB
-    CMD["uv run hr-assist ingest<br/>(cli.py)"] --> VC{"StructureV1.version ==<br/>CHUNKING_VERSION?"}
+    CMD["uv run hr-assist ingest<br/>(cli.py)"] --> VC{"STRATEGIES has<br/>CHUNKING_VERSION?"}
     VC -->|"no"| STOP1["SystemExit"]
     VC -->|"yes"| LM["load_manifest()"]
     LM --> LOOP["For each ManifestEntry"]
@@ -488,7 +492,7 @@ uv run hr-assist ingest                       # uses data/manifest.yaml
 uv run hr-assist ingest --manifest other.yaml # uses a different manifest
 ```
 
-`cli.py` first compares the chunking version of the strategy with the `CHUNKING_VERSION` setting. If they differ, the command stops. This prevents a collection whose name says `structure_v1` but whose chunks come from another strategy.
+`cli.py` first looks up the strategy for the `CHUNKING_VERSION` setting in `STRATEGIES`. If there is none, the command stops. Because the same setting names the collection, a collection whose name says `chunking_v1` always holds `StructureV1` chunks.
 
 ### 6.2 Parsing
 
@@ -577,6 +581,10 @@ Rules:
 #### Step 4: slides
 
 A Summary Deck does not have numbered sections. Each slide becomes one chunk. The chunk has `slide` instead of `page_start` and `page_end`, has no `section_number`, and uses the slide title as `section_title`.
+
+#### `StructureV2`
+
+`StructureV2` (`chunking_v2`, [ADR 0005](adr/0005-split-oversized-sections-at-unnumbered-headings.md)) is `StructureV1` with two changes. The overlap is 100 tokens instead of 60, and the size limit stays 500. An oversized section is split at its unnumbered headings (worked examples, cards, appendices): whole groups are packed into parts, and only a group that alone exceeds the limit is split paragraph by paragraph, with its heading repeated at the top of each later part. So a worked example is never cut between its scenario and its calculation. Everything else, including slides and metadata, is the same.
 
 ### 6.5 The chunk
 
@@ -779,7 +787,7 @@ Answers the latest question in a conversation.
 | `messages[].content` | string | Whitespace at the ends is removed. Then 1 to 4,000 characters. |
 | `as_of_date` | ISO date or `null` | Optional. If it is missing, the server uses its own date. |
 
-The server is **stateless**. It keeps no conversation. The client sends the history with each request. The UI sends the last 6 turns. The server also uses only the last 6 (`HISTORY_TURNS`).
+The server is **stateless**. It keeps no conversation. The client sends the history with each request. The UI sends the last 6 turns. The server uses only the last 5 of them (the `HISTORY_TURNS` setting).
 
 **Response body (`ChatResponse`), status 200:**
 
@@ -814,7 +822,7 @@ The server is **stateless**. It keeps no conversation. The client sends the hist
 | `citations[].section` | `"3.1 Entitlement"` for a PDF, or the slide title for a deck. |
 | `citations[].page_start`, `page_end` | Set for a PDF. `null` for a deck. |
 | `citations[].slide` | Set for a deck. `null` for a PDF. |
-| `citations[].snippet` | The start of the chunk body, at most about 600 characters. It ends with `…` if it was cut. |
+| `citations[].snippet` | The whole chunk body, never cut. |
 | `citations[].status` | `current` or `superseded`. The UI marks superseded sources. |
 
 **Status codes:**
@@ -920,12 +928,12 @@ sequenceDiagram
         L-->>R: raise RateLimited → 429
     end
     R->>A: answer(request)
-    A->>Q: retrieve(latest user message, k=8)
+    A->>Q: retrieve(latest user message, k=3)
     Q->>O: embed the question
     Q->>D: top 8 by cosine similarity
     D-->>Q: 8 points with payloads
     Q-->>A: list of Chunk
-    A->>P: build_prompt(as_of_date, chunks, last 6 messages)
+    A->>P: build_prompt(as_of_date, chunks, last 5 messages)
     P-->>A: SystemMessage + conversation turns
     A->>M: generate(prompt)
     M-->>A: AssistantReply + token usage
@@ -940,9 +948,8 @@ The rate limiter runs **after** FastAPI validates the body. So an invalid reques
 
 | Constant | Value | File | Meaning | Trade-off |
 | --- | --- | --- | --- | --- |
-| `RETRIEVAL_K` | 8 | `answerer.py:14` | Chunks sent to the model | More chunks give better recall but more cost and more noise. 8 chunks are about 5,000 input tokens. |
-| `HISTORY_TURNS` | 6 | `answerer.py:15` | Messages of history in the prompt | More history gives better follow-ups but more cost. |
-| `SNIPPET_CHARS` | 600 | `answerer.py:16` | Maximum Citation snippet length | Longer snippets give more evidence but a larger UI. |
+| `RETRIEVAL_K` (setting) | 3 | `settings.py` | Chunks sent to the model | More chunks give better recall but more cost and more noise. With `chunking_v2`, 3 chunks are usually under 1,500 input tokens, up to about 2,700 when they hold long tables. |
+| `HISTORY_TURNS` (setting) | 5 | `settings.py` | Messages of history in the prompt | More history gives better follow-ups but more cost. |
 | `PROMPT_VERSION` | `v5` | `prompt.py:8` | Written to each chat log line | Lets you compare logs before and after a prompt change. |
 
 ### 9.3 Retrieval: `QdrantRetriever`
@@ -974,7 +981,7 @@ flowchart TB
         R6["Sources: [1] ... [8]<br/>each with title, ID, version, kind,<br/>status, Effective Period, location, body"]
         R1 --> R2 --> R3 --> R4 --> R5 --> R6
     end
-    SYS --> H["HumanMessage / AIMessage<br/>the last 6 turns, in order"]
+    SYS --> H["HumanMessage / AIMessage<br/>the last 5 turns, in order"]
 ```
 
 Each source in the prompt looks like this:
@@ -1066,7 +1073,7 @@ Marker `[9]` disappears, because there is no source 9. Source 2 gets a Citation 
 `_citation` copies the fields of a chunk's metadata into a `Citation`:
 
 - `section` is `"3.1 Entitlement"` (number and title) for a PDF, or the slide title for a deck.
-- `snippet` is the start of the chunk body. `_snippet` cuts it at the last word boundary before 600 characters and adds `…`. It never cuts a word in half.
+- `snippet` is the whole chunk body, never cut, so the card shows all the text the model saw.
 
 The snippet is Markdown (headings, bold, lists, pipe tables). The UI has a small Markdown reader (`frontend/src/app/reply/snippet.ts`) for this subset.
 
@@ -1338,7 +1345,7 @@ The command starts Uvicorn on `$PORT` with `exec`, so Uvicorn gets the `SIGTERM`
 | UI | Firebase Hosting, site `hr-assist-demo` | Custom domain `hr-assist.naveenmanjappa.com` |
 | API | Cloud Run `hr-assist-api`, `europe-west1` | 0 to 1 instance, public, runs as `hr-assist-runtime` |
 | Secrets | Secret Manager | `openai-api-key`, `qdrant-api-key`, `langsmith-api-key` |
-| Index | Qdrant Cloud free cluster | Collection `prod-structure_v1-text-embedding-3-small` |
+| Index | Qdrant Cloud free cluster | Collection `prod-chunking_v2-text-embedding-3-small` |
 | Spending | OpenAI project | $10 monthly hard limit |
 
 ### 13.4 Local development
@@ -1395,11 +1402,11 @@ The README lists the main product limits. This section repeats them and adds gap
 | **No automated evaluation.** | Nobody can measure if a change makes answers better or worse. | Build the Stage 3 harness on `evals/08_…jsonl`. |
 | **Retrieval uses the latest message only.** | "And for part-timers?" searches for those words alone. | Add a query-rewrite step that uses the history. |
 | **No metadata filter or reranker.** | Superseded and deck chunks take places in the top 8. | Add a reranker, or a soft boost for `current` Policy Documents. |
-| **No score threshold.** | The model always gets 8 chunks, even if none is relevant. Abstention depends only on the model. | Measure scores in evaluation, then add a threshold. |
+| **No score threshold.** | The model always gets 3 chunks, even if none is relevant. Abstention depends only on the model. | Measure scores in evaluation, then add a threshold. |
 | **No hybrid (keyword) search.** | Exact terms, such as a form name or a code, can rank low. | Add sparse vectors (BM25) in Qdrant. |
 | **`superseded_by` is not used after the manifest.** | The manifest records it, but chunks and prompts do not carry it. The model cannot name the replacement document from metadata. | Add it to `ChunkMetadata` and to the source line in the prompt. |
 | **No faithfulness check.** | The model can cite a chunk that does not support the statement. | Evaluate faithfulness; optionally add a check step. |
-| **The snippet is the start of the chunk.** | It can miss the sentence that the answer uses. | Ask the model for a quote, then verify that the quote is in the chunk. |
+| **The snippet is the whole chunk.** | The reader must find the sentence that the answer uses in a long card. | Ask the model for a quote, verify that the quote is in the chunk, then highlight it. |
 | **Prompt-only injection defence.** | The fixture with hostile text is not ingested, so the defence is not tested. | Ingest the fixture into a test index and run the 9 robustness questions. |
 
 ### 15.2 Operations
@@ -1444,7 +1451,7 @@ The README lists the main product limits. This section repeats them and adds gap
 
 1. Write a class with a `version` attribute and a `chunk(entry, pages)` method (the `ChunkingStrategy` Protocol).
 2. Give it a new version, for example `recursive_v1`.
-3. In `cli.py`, choose the strategy from the setting (today the CLI always makes `StructureV1`).
+3. Add it to `STRATEGIES` in `ingestion/chunking.py`, so the CLI builds it when `CHUNKING_VERSION` names its version.
 4. Set `CHUNKING_VERSION=recursive_v1` and run the ingestion. You get a new collection. The old one stays.
 5. Point the API at the new collection with the same setting, then compare the two with the evaluation set.
 
@@ -1555,7 +1562,7 @@ Build the evaluation harness and record a baseline. Then, guided by the results:
 | `corpus/chunk.py` | `Chunk` and `ChunkMetadata`, the contract between ingestion and answering. |
 | `ingestion/parser.py` | `Page`, `Parser` Protocol, `PdfParser`, `DeckParser`. |
 | `ingestion/normaliser.py` | Manifest-to-file checks and removal of headers and footers. |
-| `ingestion/chunking.py` | `ChunkingStrategy` Protocol and `StructureV1`. |
+| `ingestion/chunking.py` | `ChunkingStrategy` Protocol, `StructureV1`, `StructureV2` and `STRATEGIES`. |
 | `ingestion/pipeline.py` | `build_chunks`: parse, check, normalise and chunk each entry. |
 | `ingestion/index.py` | `rebuild_index`: embed and recreate the Qdrant collection. |
 | `answering/models.py` | `ChatRequest`, `ChatMessage`, `ChatResponse`, `Citation`, `AssistantReply`, `GeneratedReply`. |
