@@ -12,6 +12,8 @@ from hr_assist.ingestion.parser import Page
 _NUMBERED_HEADING = re.compile(r"^#{1,6}\s+(?:\*\*)?(\d+(?:\.\d+)*)\s+(.+?)(?:\*\*)?\s*$")
 # Headings and table captions lead into the block after them, so they are never parted from it.
 _LEAD_IN = re.compile(r"^(?:#{1,6}\s|\*\*Table\b)")
+# Numbered headings start sections, so any heading left inside a section body is unnumbered.
+_HEADING = re.compile(r"^#{1,6}\s")
 _CHUNK_NAMESPACE = uuid.UUID("5b0f8a52-7d0e-4c4e-9a43-2f9a8d0a1c11")
 _ENCODING = "o200k_base"
 
@@ -72,9 +74,14 @@ class StructureV1:
     A Summary Deck becomes one chunk per slide, located by its slide number instead of pages.
     """
 
-    version = "structure_v1"
+    version = "chunking_v1"
 
     def __init__(self, max_tokens: int = 500, overlap_tokens: int = 60) -> None:
+        if overlap_tokens >= max_tokens:
+            raise ValueError(
+                f"The overlap ({overlap_tokens} tokens) must be smaller than the size limit "
+                f"({max_tokens} tokens)"
+            )
         self._max_tokens = max_tokens
         self._overlap_tokens = overlap_tokens
         self._encoding = tiktoken.get_encoding(_ENCODING)
@@ -155,19 +162,21 @@ class StructureV1:
         )
 
     def _parts(self, blocks: list[_Block]) -> list[list[_Block]]:
-        """Packs blocks into parts within the size limit, overlapping by trailing paragraphs."""
         if not blocks:
             return []
         if self._tokens(_join(blocks)) <= self._max_tokens:
             return [blocks]
+        return self._pack(blocks, self._max_tokens)
 
+    def _pack(self, blocks: list[_Block], limit: int) -> list[list[_Block]]:
+        """Packs blocks into parts within the limit, overlapping by trailing paragraphs."""
         parts: list[list[_Block]] = []
         current: list[_Block] = []
         for block in self._fit(blocks):
-            if current and self._tokens(_join([*current, block])) > self._max_tokens:
+            if current and self._tokens(_join([*current, block])) > limit:
                 parts.append(current)
                 current = self._overlap(current)
-                if self._tokens(_join([*current, block])) > self._max_tokens:
+                if self._tokens(_join([*current, block])) > limit:
                     current = []
             current.append(block)
         parts.append(current)
@@ -196,6 +205,76 @@ class StructureV1:
 
     def _tokens(self, text: str) -> int:
         return len(self._encoding.encode(text))
+
+
+class StructureV2(StructureV1):
+    """StructureV1 with a larger size limit, splitting an oversized section at its unnumbered
+    headings.
+
+    Worked examples, cards and appendices each start with an unnumbered heading. StructureV1
+    packs paragraphs regardless of them, so it can cut a worked example between its scenario and
+    its calculation. Here the blocks are grouped at those headings and whole groups are packed
+    into parts. A group that alone exceeds the limit is split as StructureV1 splits a section,
+    with its heading repeated at the top of each later part so every part says what it belongs
+    to.
+    """
+
+    version = "chunking_v2"
+
+    def __init__(self, max_tokens: int = 500, overlap_tokens: int = 100) -> None:
+        super().__init__(max_tokens, overlap_tokens)
+
+    def _parts(self, blocks: list[_Block]) -> list[list[_Block]]:
+        if not blocks:
+            return []
+        if self._tokens(_join(blocks)) <= self._max_tokens:
+            return [blocks]
+
+        parts: list[list[_Block]] = []
+        current: list[_Block] = []
+        for group in _group_at_headings(blocks):
+            if self._tokens(_join([*current, *group])) <= self._max_tokens:
+                current = [*current, *group]
+                continue
+            if current:
+                parts.append(current)
+            current = []
+            if self._tokens(_join(group)) <= self._max_tokens:
+                current = group
+            else:
+                parts.extend(self._split_group(group))
+        if current:
+            parts.append(current)
+        return parts
+
+    def _split_group(self, group: list[_Block]) -> list[list[_Block]]:
+        heading = group[0].text.splitlines()[0]
+        if not _HEADING.match(heading):
+            return self._pack(group, self._max_tokens)
+        first, *rest = self._pack(group, self._max_tokens - self._tokens(heading))
+        return [
+            first,
+            *(
+                part
+                if part[0].text.startswith(heading)
+                else [_Block(heading, part[0].page_start, part[0].page_start), *part]
+                for part in rest
+            ),
+        ]
+
+
+STRATEGIES: dict[str, type[StructureV1]] = {s.version: s for s in (StructureV1, StructureV2)}
+
+
+def _group_at_headings(blocks: list[_Block]) -> list[list[_Block]]:
+    """Groups blocks so each group after the first starts at an unnumbered heading."""
+    groups: list[list[_Block]] = []
+    for block in blocks:
+        if not groups or _HEADING.match(block.text):
+            groups.append([block])
+        else:
+            groups[-1].append(block)
+    return groups
 
 
 def _split_into_sections(pages: list[Page]) -> list[_Section]:

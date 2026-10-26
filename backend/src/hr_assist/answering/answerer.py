@@ -11,10 +11,6 @@ from hr_assist.answering.models import ChatRequest, ChatResponse, Citation, Gene
 from hr_assist.answering.prompt import PROMPT_VERSION, build_prompt
 from hr_assist.corpus import Chunk
 
-RETRIEVAL_K = 8
-HISTORY_TURNS = 6
-SNIPPET_CHARS = 600
-
 # A marker such as [2] or [1, 3], with the space before it so a dropped marker leaves none.
 _MARKER = re.compile(r"(\s?)\[(\d+(?:\s*,\s*\d+)*)\]")
 
@@ -32,16 +28,20 @@ class ChatModel(Protocol):
 class Answerer:
     """2-step RAG: always retrieve, then make one structured-output call (ADR 0002)."""
 
-    def __init__(self, retriever: Retriever, chat_model: ChatModel) -> None:
+    def __init__(
+        self, retriever: Retriever, chat_model: ChatModel, retrieval_k: int, history_turns: int
+    ) -> None:
         self._retriever = retriever
         self._chat_model = chat_model
+        self._retrieval_k = retrieval_k
+        self._history_turns = history_turns
 
     @traceable(name="chat")
     async def answer(self, request: ChatRequest) -> ChatResponse:
         started = time.perf_counter()
-        chunks = await self._retriever.retrieve(request.messages[-1].content, RETRIEVAL_K)
+        chunks = await self._retriever.retrieve(request.messages[-1].content, self._retrieval_k)
         prompt = build_prompt(
-            request.as_of_date or date.today(), chunks, request.messages[-HISTORY_TURNS:]
+            request.as_of_date or date.today(), chunks, request.messages[-self._history_turns :]
         )
         generated = await self._chat_model.generate(prompt)
         reply = generated.reply
@@ -91,14 +91,6 @@ def _citation(chunk: Chunk) -> Citation:
         page_start=m.page_start,
         page_end=m.page_end,
         slide=m.slide,
-        snippet=_snippet(chunk.body),
+        snippet=chunk.body,
         status=m.status,
     )
-
-
-def _snippet(body: str) -> str:
-    """The start of the chunk, cut at a word boundary and marked with an ellipsis if shortened."""
-    if len(body) <= SNIPPET_CHARS:
-        return body
-    cut = body[: SNIPPET_CHARS + 1].rsplit(maxsplit=1)[0]
-    return cut.rstrip() + "…"

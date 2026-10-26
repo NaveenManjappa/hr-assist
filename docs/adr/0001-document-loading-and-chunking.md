@@ -21,7 +21,7 @@ PPTX ─► python-pptx (one unit per slide, notes included) ──────�
 4. **Split oversized sections** (~500 tokens, ~60 overlap) into parts made of whole paragraphs and tables. A table is never split, and a heading or table caption stays with the block after it, so a part holding a long table can exceed the limit. Only a paragraph that alone exceeds the limit goes through `RecursiveCharacterTextSplitter`. Each part carries the pages its own text sits on.
 5. **Decks**: one chunk per slide, containing the title, body text, tables rendered as Markdown, and speaker notes. The notes hold policy content that isn't on the slide. A deck chunk carries `slide` in place of `page_start` and `page_end`, has no `section_number`, and uses the slide title as its `section_title`.
 
-The loader and the chunker sit behind our own `Parser` and `ChunkingStrategy` interfaces. The chunking config is versioned (`structure_v1`), and that version is part of the Qdrant collection name.
+The loader and the chunker sit behind our own `Parser` and `ChunkingStrategy` interfaces. The chunking config is versioned (`chunking_v1`), and that version is part of the Qdrant collection name.
 
 ## Example
 
@@ -60,7 +60,7 @@ Its metadata:
 {"document_id": "NDS-HR-LAS-002", "document_version": "v1.2", "title": "Leave and Absence Standard",
  "document_kind": "policy_document", "status": "current", "effective_from": "2026-10-01", "effective_to": null,
  "section_number": "3.1", "section_title": "Entitlement", "section_path": ["3 Annual leave", "3.1 Entitlement"],
- "page_start": 5, "page_end": 5, "chunking_version": "structure_v1"}
+ "page_start": 5, "page_end": 5, "chunking_version": "chunking_v1"}
 ```
 
 A deck chunk is headed by its document and slide number, and its metadata carries `slide` in place of pages:
@@ -79,7 +79,7 @@ Slide 4
 Speaker notes: Use this table when employees ask what changed. Notice rules depend on the date the request was submitted, not the date of the leave. ...
 ```
 
-Adding decks left every PDF chunk unchanged, so it stays under `structure_v1`.
+Adding decks left every PDF chunk unchanged, so it stays under `chunking_v1`.
 
 ## Corpus Manifest
 

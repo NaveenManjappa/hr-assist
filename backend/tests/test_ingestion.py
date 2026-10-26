@@ -1,7 +1,7 @@
 import pytest
 
 from hr_assist.corpus import Chunk, ManifestEntry, ManifestError, load_manifest
-from hr_assist.ingestion import build_chunks
+from hr_assist.ingestion import STRATEGIES, StructureV1, StructureV2, build_chunks
 
 TABLE_3_1_ROWS = [
     "|Less than 3 years|27|8|35|262.5|",
@@ -63,7 +63,7 @@ def test_chunks_carry_document_facts_from_the_manifest(corpus_chunks: list[Chunk
     assert metadata.status == "current"
     assert str(metadata.effective_from) == "2026-10-01"
     assert metadata.effective_to is None
-    assert metadata.chunking_version == "structure_v1"
+    assert metadata.chunking_version == "chunking_v1"
 
 
 def test_embedded_text_starts_with_the_document_and_section_header(
@@ -254,3 +254,80 @@ def test_a_manifest_version_that_disagrees_with_the_title_slide_fails_ingestion(
 
     with pytest.raises(ManifestError, match=r"NDS-HR-PRES-012 v2\.0.*Version 2\.0"):
         build_chunks([entry])
+
+
+@pytest.fixture(scope="module")
+def v2_chunks() -> list[Chunk]:
+    return build_chunks(load_manifest(), strategy=StructureV2())
+
+
+def parts_of(chunks: list[Chunk], document_id: str, section_number: str) -> list[Chunk]:
+    return [
+        c
+        for c in chunks
+        if c.metadata.document_id == document_id and c.metadata.section_number == section_number
+    ]
+
+
+def test_v2_splits_section_3_4_at_worked_example_3_4b(v2_chunks: list[Chunk]) -> None:
+    parts = parts_of(v2_chunks, "NDS-HR-LAS-002", "3.4")
+
+    assert len(parts) == 2
+    assert "Worked example 3.4A — full-time to part-time" in parts[0].body
+    assert "Worked example 3.4B" not in parts[0].body
+    assert parts[1].body.startswith("## **Worked example 3.4B — part-time to full-time**")
+    assert "Bookable annual leave for 2027: 236.75 − 45 = **191.75 hours**" in parts[1].body
+    assert parts[1].metadata.chunking_version == "chunking_v2"
+
+
+def test_v2_splits_an_oversized_section_only_at_its_unnumbered_headings(
+    v2_chunks: list[Chunk],
+) -> None:
+    parts = parts_of(v2_chunks, "NDS-HR-LAS-002", "5")
+
+    assert len(parts) > 1
+    for part in parts[1:]:
+        assert part.body.startswith("#")
+    [card_5_4] = [p for p in parts if "Card 5.4 — Shared parental leave" in p.body]
+    assert card_5_4.body.startswith("## **Card 5.3 — Adoption leave**")
+
+
+def test_v2_repeats_the_heading_on_each_part_of_an_oversized_group(
+    v2_chunks: list[Chunk],
+) -> None:
+    table_r = [
+        p
+        for p in parts_of(v2_chunks, "NDS-HR-HB-001", "24")
+        if "Table R — Statutory references" in p.body
+    ]
+
+    assert len(table_r) == 2
+    for part in table_r:
+        assert part.body.startswith("# **Table R — Statutory references**")
+    assert [(p.metadata.page_start, p.metadata.page_end) for p in table_r] == [(66, 66), (67, 67)]
+
+
+def test_v2_splits_no_table_across_chunks(v2_chunks: list[Chunk]) -> None:
+    for chunk in v2_chunks:
+        lines = chunk.body.splitlines()
+        for i, line in enumerate(lines):
+            if line.startswith("|") and (i == 0 or not lines[i - 1].startswith("|")):
+                assert lines[i + 1].startswith("|---")
+
+
+def test_strategies_are_chosen_by_their_chunking_version() -> None:
+    assert STRATEGIES["chunking_v1"] is StructureV1
+    assert STRATEGIES["chunking_v2"] is StructureV2
+
+
+def test_a_larger_size_limit_keeps_section_3_4_whole() -> None:
+    chunks = build_chunks([manifest_entry("NDS-HR-LAS-002")], strategy=StructureV2(max_tokens=800))
+
+    [chunk] = parts_of(chunks, "NDS-HR-LAS-002", "3.4")
+    assert "Worked example 3.4A — full-time to part-time" in chunk.body
+    assert "Worked example 3.4B — part-time to full-time" in chunk.body
+
+
+def test_an_overlap_as_large_as_the_size_limit_is_rejected() -> None:
+    with pytest.raises(ValueError, match="overlap"):
+        StructureV2(max_tokens=100, overlap_tokens=100)

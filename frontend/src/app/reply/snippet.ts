@@ -1,8 +1,7 @@
 /**
- * Reads a Citation snippet: the start of a chunk's Markdown, cut short at a word, so the last
- * block may stop mid-sentence or mid-row. Only the subset the parsers emit is understood:
- * headings, **bold**, pipe tables, and bulleted or numbered lists. A <br> inside a table cell is
- * where the PDF wrapped a line, so it reads as a space.
+ * Reads a Citation snippet: the whole of a chunk's Markdown. Only the subset the parsers emit is
+ * understood: headings, **bold**, pipe tables, and bulleted or numbered lists. A <br> inside a
+ * table cell is where the PDF wrapped a line, so it reads as a space.
  */
 
 export interface Inline {

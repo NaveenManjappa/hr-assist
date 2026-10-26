@@ -35,7 +35,7 @@ BRIEFING_SLIDE_4 = Chunk(
         section_title="Annual leave: what changed",
         section_path=["Annual leave: what changed"],
         slide=4,
-        chunking_version="structure_v1",
+        chunking_version="chunking_v1",
     ),
 )
 SUPERSEDED_CARRYOVER = Chunk(
@@ -54,7 +54,7 @@ SUPERSEDED_CARRYOVER = Chunk(
         section_path=["4 Annual leave", "4.3 Carryover"],
         page_start=3,
         page_end=3,
-        chunking_version="structure_v1",
+        chunking_version="chunking_v1",
     ),
 )
 
@@ -160,7 +160,7 @@ def test_the_prompt_asks_for_inline_markers(settings: Settings) -> None:
     assert "Mark each statement with the number of the source it rests on" in system
 
 
-def test_retrieval_uses_the_latest_question_and_the_top_8_chunks(settings: Settings) -> None:
+def test_retrieval_uses_the_latest_question_and_the_top_3_chunks(settings: Settings) -> None:
     retriever = FakeRetriever([ENTITLEMENT])
     body = {
         "messages": [
@@ -172,7 +172,7 @@ def test_retrieval_uses_the_latest_question_and_the_top_8_chunks(settings: Setti
 
     chat(settings, AssistantReply(response_type="answer", message="27 days."), body, retriever)
 
-    assert retriever.queries == [(QUESTION, 8)]
+    assert retriever.queries == [(QUESTION, 3)]
 
 
 def test_the_prompt_shows_each_source_with_its_status_and_effective_period(
@@ -414,7 +414,7 @@ def test_a_citation_from_a_superseded_source_is_marked_superseded(settings: Sett
     ]
 
 
-def test_a_long_snippet_is_cut_at_a_word_and_marked_as_shortened(settings: Settings) -> None:
+def test_the_snippet_is_the_whole_chunk_body_however_long(settings: Settings) -> None:
     body = "Notice periods depend on grade. " + "An employer must give notice. " * 30
     reply = AssistantReply(response_type="answer", message="1 month.", cited_sources=[1])
 
@@ -422,11 +422,7 @@ def test_a_long_snippet_is_cut_at_a_word_and_marked_as_shortened(settings: Setti
         settings, reply, ask(), FakeRetriever([make_chunk("22.4", "Notice", body, page=58)])
     ).json()["citations"]
 
-    snippet = citation["snippet"]
-    assert len(snippet) <= 601
-    assert snippet.endswith("…")
-    assert body.startswith(snippet[:-1])
-    assert body[len(snippet) - 1] == " "
+    assert citation["snippet"] == body
 
 
 @pytest.mark.parametrize(
@@ -480,8 +476,25 @@ def test_generation_gets_only_the_most_recent_turns_and_retrieval_only_the_lates
     TestClient(app).post("/api/chat", json={"messages": messages})
 
     turns = [str(m.content) for m in chat_model.prompts[0][1:]]
-    assert turns == ["turn 4", "turn 5", "turn 6", "turn 7", "turn 8", "Annual leave"]
-    assert retriever.queries == [("Annual leave", 8)]
+    assert turns == ["turn 5", "turn 6", "turn 7", "turn 8", "Annual leave"]
+    assert retriever.queries == [("Annual leave", 3)]
+
+
+def test_retrieval_k_and_history_turns_come_from_settings(settings: Settings) -> None:
+    settings = settings.model_copy(update={"retrieval_k": 3, "history_turns": 2})
+    retriever = FakeRetriever([ENTITLEMENT])
+    chat_model = FakeChatModel(AssistantReply(response_type="answer", message="27 days."))
+    app = create_app(
+        settings, vector_store=FakeVectorStore(), retriever=retriever, chat_model=chat_model
+    )
+    messages = [
+        {"role": "user" if n % 2 else "assistant", "content": f"turn {n}"} for n in range(1, 4)
+    ]
+
+    TestClient(app).post("/api/chat", json={"messages": messages})
+
+    assert [str(m.content) for m in chat_model.prompts[0][1:]] == ["turn 2", "turn 3"]
+    assert retriever.queries == [("turn 3", 3)]
 
 
 def test_the_prompt_states_the_response_type_rules_and_that_sources_are_data(
