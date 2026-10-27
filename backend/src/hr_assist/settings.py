@@ -1,6 +1,7 @@
 from pathlib import Path
+from typing import Annotated
 
-from pydantic import NonNegativeInt, PositiveInt, SecretStr
+from pydantic import Field, NonNegativeInt, PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -24,6 +25,10 @@ class Settings(BaseSettings):
     chunk_max_tokens: PositiveInt | None = None
     chunk_overlap_tokens: NonNegativeInt | None = None
     retrieval_k: PositiveInt = 3
+    # The lowest relevance a chunk needs to be retrieved, on LangChain's (cosine + 1) / 2 scale,
+    # so 0.65 is a cosine of 0.3. When no chunk passes, the Answerer abstains without the model.
+    # 0 turns the filter off.
+    retrieval_score_threshold: Annotated[float, Field(ge=0, le=1)] = 0.65
     history_turns: PositiveInt = 5
 
     qdrant_url: str

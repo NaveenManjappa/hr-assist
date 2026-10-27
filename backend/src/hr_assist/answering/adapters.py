@@ -25,10 +25,14 @@ class QdrantRetriever:
             ),
             validate_collection_config=False,
         )
+        self._score_threshold = settings.retrieval_score_threshold
 
     async def retrieve(self, query: str, k: int) -> list[Chunk]:
         try:
-            retriever = self._store.as_retriever(search_kwargs={"k": k})
+            retriever = self._store.as_retriever(
+                search_type="similarity_score_threshold",
+                search_kwargs={"k": k, "score_threshold": float(self._score_threshold)},
+            )
             documents = await retriever.ainvoke(query, config={"run_name": "retrieve"})
         except Exception as exc:
             raise UpstreamError("Searching the policy index failed.") from exc

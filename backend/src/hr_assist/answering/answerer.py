@@ -16,6 +16,12 @@ _MARKER = re.compile(r"(\s?)\[(\d+(?:\s*,\s*\d+)*)\]")
 
 logger = logging.getLogger("hr_assist.chat")
 
+OUT_OF_SCOPE_MESSAGE = (
+    "I couldn't find anything in Northstar's HR policies about that. I can only answer "
+    "questions about HR policy, so please contact People Operations if you need help with "
+    "something else."
+)
+
 
 class Retriever(Protocol):
     async def retrieve(self, query: str, k: int) -> list[Chunk]: ...
@@ -26,7 +32,10 @@ class ChatModel(Protocol):
 
 
 class Answerer:
-    """2-step RAG: always retrieve, then make one structured-output call (ADR 0002)."""
+    """2-step RAG: always retrieve, then make one structured-output call (ADR 0002).
+
+    When no chunk clears the retriever's relevance threshold, it abstains without the call.
+    """
 
     def __init__(
         self, retriever: Retriever, chat_model: ChatModel, retrieval_k: int, history_turns: int
@@ -40,6 +49,14 @@ class Answerer:
     async def answer(self, request: ChatRequest) -> ChatResponse:
         started = time.perf_counter()
         chunks = await self._retriever.retrieve(request.messages[-1].content, self._retrieval_k)
+        if not chunks:
+            logger.info(
+                "chat response_type=abstention prompt=none latency_ms=%.0f chunks=[]",
+                (time.perf_counter() - started) * 1000,
+            )
+            return ChatResponse(
+                response_type="abstention", message=OUT_OF_SCOPE_MESSAGE, citations=[]
+            )
         prompt = build_prompt(
             request.as_of_date or date.today(), chunks, request.messages[-self._history_turns :]
         )

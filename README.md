@@ -122,6 +122,7 @@ Fill in `.env` at the repo root. The backend reads it no matter which directory 
 | `MAX_OUTPUT_TOKENS` | no | Caps the length of each reply. Defaults to `800`. |
 | `CHUNK_MAX_TOKENS`, `CHUNK_OVERLAP_TOKENS` | no | Part of the chunking strategy, with `CHUNKING_VERSION`: override its size limit and overlap at ingestion. Only the version names the collection, so re-ingesting with new sizes under the same version replaces that collection. |
 | `RETRIEVAL_K` | no | Chunks retrieved for each question. Defaults to `3`. |
+| `RETRIEVAL_SCORE_THRESHOLD` | no | The lowest relevance, on a `(cosine + 1) / 2` scale, a chunk needs to be retrieved. When no chunk passes, the reply is an abstention without a model call. Defaults to `0.65`; `0` turns it off. |
 | `HISTORY_TURNS` | no | Recent messages kept in the prompt. Defaults to `5`. |
 | `EMBEDDING_MODEL` | no | Defaults to `text-embedding-3-small`. Changing it means re-ingesting. |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | no | Set `LANGSMITH_TRACING=true` to trace each request. EU accounts also need `LANGSMITH_ENDPOINT`. |
