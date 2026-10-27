@@ -6,6 +6,7 @@ from conftest import FakeChatModel, FakeRetriever, FakeVectorStore, make_chunk
 from fastapi.testclient import TestClient
 
 from hr_assist.answering import AssistantReply
+from hr_assist.answering.answerer import OUT_OF_SCOPE_MESSAGE
 from hr_assist.api import UpstreamError, create_app
 from hr_assist.corpus import Chunk, ChunkMetadata
 from hr_assist.settings import Settings
@@ -459,6 +460,28 @@ def test_clarification_abstention_and_refusal_pass_through_intact(
         "message": reply.message,
         "citations": [],
     }
+
+
+def test_with_no_relevant_chunks_it_abstains_without_calling_the_model(
+    settings: Settings,
+) -> None:
+    chat_model = FakeChatModel(AssistantReply(response_type="answer", message="27 days."))
+    app = create_app(
+        settings,
+        vector_store=FakeVectorStore(),
+        retriever=FakeRetriever([]),
+        chat_model=chat_model,
+    )
+
+    response = TestClient(app).post("/api/chat", json=ask("What is the latest news on cricket?"))
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "response_type": "abstention",
+        "message": OUT_OF_SCOPE_MESSAGE,
+        "citations": [],
+    }
+    assert chat_model.prompts == []
 
 
 def test_generation_gets_only_the_most_recent_turns_and_retrieval_only_the_latest(
