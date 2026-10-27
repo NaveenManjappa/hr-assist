@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field, NonNegativeInt, PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     app_env: str
     openai_api_key: SecretStr
     chat_model: str = "gpt-6-luna"
-    max_output_tokens: PositiveInt = 800
+    max_output_tokens: PositiveInt = 5000
+    # Reasoning tokens count against max_output_tokens, so a higher effort needs a higher cap.
+    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] = "low"
     embedding_model: str = "text-embedding-3-small"
     # The chunking strategy: its version, and optionally its size limit and overlap. Unset sizes
     # take the version's own defaults (chunking_v1: 500/60, chunking_v2: 500/100). Only the

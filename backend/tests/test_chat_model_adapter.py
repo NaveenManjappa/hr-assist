@@ -47,10 +47,10 @@ def sent_request_body(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> di
     return body
 
 
-def test_replies_are_capped_at_800_output_tokens_by_default(
+def test_replies_are_capped_at_5000_output_tokens_by_default(
     monkeypatch: pytest.MonkeyPatch, settings: Settings
 ) -> None:
-    assert sent_request_body(monkeypatch, settings)["max_completion_tokens"] == 800
+    assert sent_request_body(monkeypatch, settings)["max_completion_tokens"] == 5000
 
 
 def test_the_output_token_cap_comes_from_settings(
@@ -59,3 +59,17 @@ def test_the_output_token_cap_comes_from_settings(
     capped = settings.model_copy(update={"max_output_tokens": 300})
 
     assert sent_request_body(monkeypatch, capped)["max_completion_tokens"] == 300
+
+
+def test_reasoning_effort_is_low_by_default(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    assert sent_request_body(monkeypatch, settings)["reasoning_effort"] == "low"
+
+
+def test_the_reasoning_effort_comes_from_settings(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    effortful = settings.model_copy(update={"reasoning_effort": "high"})
+
+    assert sent_request_body(monkeypatch, effortful)["reasoning_effort"] == "high"

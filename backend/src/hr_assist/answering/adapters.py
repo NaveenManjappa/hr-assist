@@ -57,6 +57,7 @@ class OpenAIChatModel:
                 model_provider="openai",
                 api_key=settings.openai_api_key.get_secret_value(),
                 max_tokens=settings.max_output_tokens,
+                reasoning_effort=settings.reasoning_effort,
             )
             .with_structured_output(AssistantReply, include_raw=True)
             .with_config(run_name="generate")
