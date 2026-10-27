@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from pydantic import ValidationError
 
@@ -42,7 +44,7 @@ def test_the_retrieval_score_threshold_must_be_between_0_and_1(threshold: float)
         make_settings(retrieval_score_threshold=threshold)
 
 
-def make_settings(**overrides: float) -> Settings:
+def make_settings(**overrides: Any) -> Settings:
     return Settings(
         _env_file=None,
         app_env="test",
