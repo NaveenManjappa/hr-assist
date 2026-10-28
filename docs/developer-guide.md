@@ -1281,9 +1281,12 @@ Stage 3 of the project brief is evaluation, built in stages with DeepEval ([ADR 
 
 | File | Contents |
 | --- | --- |
-| `evals/07_RAG_Evaluation_Questions.csv` | 125 questions with category, difficulty, expected behaviour, expected answer, source documents and sections, version, As-Of Date |
-| `evals/08_RAG_Evaluation_Gold_Answers.jsonl` | The same 125 questions with a gold answer, verbatim supporting passages, `must_mention`, `must_not_claim`, citation requirements and a rubric |
+| `evals/eval_questions.json` | 125 questions with category, difficulty, expected behaviour, expected answer, source documents and sections, version, As-Of Date, a gold answer, supporting passages, `must_mention`, `must_not_claim`, citation requirements and a rubric. The single source for every golden file |
+| `evals/retrieval/goldens_v1.jsonl` | The retriever goldens, built from it by `evals/retrieval/build_goldens.py` |
+| `evals/generation/goldens_v1.jsonl` | The generation goldens: the same 89 questions with their gold chunks, built by `evals/generation/build_goldens.py` |
 | `evals/baseline_manual_v1.csv` | A sheet for a manual baseline run, with columns for the actual answer, retrieved chunks, rank of the correct chunk, hit@k, reciprocal rank and scores |
+
+To build the golden files, follow the procedure in [Running the evals, section 8](evals.md#8-building-the-golden-files).
 
 Questions by category:
 

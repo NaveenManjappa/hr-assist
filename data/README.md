@@ -23,6 +23,6 @@ Folder layout (paths from the project root):
 - test_fixtures/10_TEST_FIXTURE_Prompt_Injection_Sample.pdf (adversarial; needed for some privacy_injection_robustness questions)
 
 ## Never ingest
-- evals/07_RAG_Evaluation_Questions.csv, evals/08_RAG_Evaluation_Gold_Answers.jsonl (answer key, 125 questions)
+- evals/eval_questions.json (answer key, 125 questions; it replaced the original 07_RAG_Evaluation_Questions.csv and 08_RAG_Evaluation_Gold_Answers.jsonl)
 
 Every supporting_passages quote in the answer key was checked as a verbatim substring of the source text.

@@ -13,7 +13,7 @@ This guide explains how we measure HR Assist's quality, and how to run the evals
 5. [How to run the retriever eval](#5-how-to-run-the-retriever-eval)
 6. [Reading the results](#6-reading-the-results)
 7. [Comparing two setups](#7-comparing-two-setups)
-8. [Changing the golden questions](#8-changing-the-golden-questions)
+8. [Building the golden files](#8-building-the-golden-files)
 9. [What comes next](#9-what-comes-next)
 10. [Troubleshooting](#10-troubleshooting)
 
@@ -233,19 +233,91 @@ uv run --project backend --group evals python evals/retrieval/run_eval.py
 
 Then compare `means` in the two summaries: first `overall`, then each category. A difference of a point or two is noise (see [section 6](#dont-over-read-small-differences)). If one version is clearly worse in a category, look at that category's low-scoring questions in its `test_run` file to see why.
 
-## 8. Changing the golden questions
+## 8. Building the golden files
 
-The goldens file, `evals/retrieval/goldens_v1.jsonl`, is **built by a script, never edited by hand**. It comes from the two source files `evals/07_RAG_Evaluation_Questions.csv` and `evals/08_RAG_Evaluation_Gold_Answers.jsonl`.
+### The source file and the golden files
 
-If you change either source file, rebuild it:
+All golden files come from one source file, `evals/eval_questions.json`. This file contains the 125 questions. Each question has a gold answer and its supporting passages.
+
+Scripts make the golden files. Do not edit a golden file by hand.
+
+| Golden file | Script | Eval |
+| --- | --- | --- |
+| `evals/retrieval/goldens_v1.jsonl` | `evals/retrieval/build_goldens.py` | Retriever eval (stage 2) |
+| `evals/generation/goldens_v1.jsonl` | `evals/generation/build_goldens.py` | Generation eval (stage 3) |
+
+Each script also writes a copy of the golden file in pretty-printed JSON, with the same name and the extension `.json`. For example, `evals/generation/goldens_v1.json`. Use this copy to read the goldens in an editor. The evals use only the `.jsonl` file. The two files always contain the same goldens, because the script writes them together.
+
+Build the golden files again when:
+
+- you change `evals/eval_questions.json`;
+- you change the ingestion code or the chunking. This change affects only the generation goldens.
+
+### The procedure
+
+Do these steps from the repo root. Do step 1 before step 3, because the generation script reads its question list from the retriever goldens.
+
+1. Build the retriever goldens:
+
+   ```bash
+   python evals/retrieval/build_goldens.py
+   ```
+
+2. Read the output. The script shows the number of goldens for each category, and the total. Today the total is 89.
+3. Build the generation goldens:
+
+   ```bash
+   uv run --project backend python evals/generation/build_goldens.py
+   ```
+
+4. Read the output. The script shows:
+   - how many questions have 1, 2, 3 or more gold chunks;
+   - each supporting passage that has no chunk;
+   - the file that it wrote.
+5. Look at the changes with `git diff --stat evals/`. Commit the `.jsonl` file and its `.json` copy together. If you did not change the questions, the retriever goldens must stay the same.
+
+The generation script uses the backend package. It reads the PDFs and decks in `data/` and makes the chunks again, in the same way as ingestion. It does not use Qdrant or OpenAI, so it costs nothing. It takes approximately 25 seconds.
+
+### What the scripts check
+
+The retriever script stops with an error when:
+
+- two questions have the same ID;
+- a question has no gold answer or no supporting passages;
+- a question cites a Document ID that is not in `data/manifest.yaml`;
+- the source file contains the section sign. Write "section 6.1".
+
+The generation script stops with an error when a question has no gold chunk. When only one passage of a question has no chunk, the script does not stop. It shows that passage and records it in the golden. Today one passage has no chunk: the "Superseded notice" of `NDS-EVAL-082`. Ingestion removes this notice from the document.
+
+### How the generation script finds the gold chunks
+
+For each supporting passage of a question, the script:
+
+1. takes the Document ID of the passage;
+2. takes the section number at the start of the passage's section, for example "6.3" from "6.3, Table 6.3";
+3. selects all chunks of that document in that section and in its subsections. For a deck, it selects the chunk of the slide, for example "Slide 6".
+
+The script does not compare the quotes with the chunk text. The Document ID is necessary, because the same section number occurs in different documents.
+
+The golden file keeps the full chunks, with their metadata. Thus each eval run gives the model the same evidence. The value of `RETRIEVAL_K` has no effect on the gold chunks.
+
+### Golden files for a different chunking version
+
+The generation script uses `chunking_v2` by default. To build the generation goldens for a different chunking version, give the version and a new file name:
 
 ```bash
-python evals/retrieval/build_goldens.py
+uv run --project backend python evals/generation/build_goldens.py \
+  --chunking chunking_v1 --output evals/generation/goldens_chunking_v1.jsonl
 ```
 
-The script checks that the two source files agree, and stops with an error if they don't.
+Do not write over `goldens_v1.jsonl` with a different chunking version. Each golden records its chunking version in `additional_metadata`.
 
-If your change **adds or removes questions**, make a new version (`goldens_v2.jsonl`) instead of overwriting v1: change `OUTPUT` in `build_goldens.py` and `GOLDENS` in `run_eval.py`. Scores from different question sets can't be compared, and a new file name makes that obvious.
+### When you add or remove questions
+
+Make a new version of the golden file, for example `goldens_v2.jsonl`. Do not write over v1. Scores from different question sets are not comparable, and a new file name makes this clear.
+
+- For the retriever goldens, change `OUTPUT` in `evals/retrieval/build_goldens.py` and `GOLDENS` in `evals/retrieval/run_eval.py`.
+- For the generation goldens, change `OUTPUT` and `RETRIEVAL_GOLDENS` in `evals/generation/build_goldens.py`.
 
 ## 9. What comes next
 
@@ -255,7 +327,7 @@ Evals are built one stage at a time (ADR 0006):
 | --- | --- | --- |
 | 1. Retriever goldens | The 89 test questions for search | Done |
 | 2. Retriever eval | Search quality | **Done (this guide)** |
-| 3. Generation eval | Answer quality when the model is given the right chunks | Not started |
+| 3. Generation eval | Answer quality when the model is given the right chunks | Goldens built (`evals/generation/goldens_v1.jsonl`); eval not started |
 | 4. Pipeline eval | Search and answering together, plus clarifications, abstentions and refusals | Not started |
 | 5. Application eval | The live API over HTTP | Not started |
 | 6. CI | Running the evals from GitHub Actions | Not started |

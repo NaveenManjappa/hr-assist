@@ -4,7 +4,7 @@ status: proposed
 
 # Evaluate HR Assist with DeepEval, level by level, starting with the retriever
 
-Several decisions are waiting on evidence: whether `chunking_v2` is at least as good as `chunking_v1` ([ADR 0005](0005-split-oversized-sections-at-unnumbered-headings.md)), whether `text-embedding-3-small` misses relevant chunks, and whether two-step RAG needs extra steps such as query rewriting ([ADR 0002](0002-openai-models-and-two-step-rag.md)). Today the only way to judge a change is to try a few questions by hand. We have 125 eval questions (`evals/07_RAG_Evaluation_Questions.csv`) with gold answers and supporting passages (`evals/08_RAG_Evaluation_Gold_Answers.jsonl`), but nothing runs them.
+Several decisions are waiting on evidence: whether `chunking_v2` is at least as good as `chunking_v1` ([ADR 0005](0005-split-oversized-sections-at-unnumbered-headings.md)), whether `text-embedding-3-small` misses relevant chunks, and whether two-step RAG needs extra steps such as query rewriting ([ADR 0002](0002-openai-models-and-two-step-rag.md)). Today the only way to judge a change is to try a few questions by hand. We have 125 eval questions with gold answers and supporting passages (`evals/eval_questions.json`), but nothing runs them.
 
 We will build evals with **DeepEval**, using LLM-as-a-judge metrics, at three levels: component, pipeline and application. They will be built **one stage at a time**, and each stage starts by preparing its golden data, so it is clear what is measured and why before any eval code exists. **LangSmith stays for tracing only.** Evals are **run by hand**, and every run writes its results and the settings it used to a file. CI comes after the application-level evals exist.
 
@@ -14,7 +14,7 @@ We will build evals with **DeepEval**, using LLM-as-a-judge metrics, at three le
 |---|---|---|---|
 | Component: chunking | Ingestion output | `ChunkingStrategy`, `build_chunks` | Are sections, tables and headings kept intact? Already covered by pytest in `tests/test_ingestion.py`. |
 | Component: retriever | Retrieval only, no generation | `Retriever.retrieve(query, k)` | Do the chunks returned for a question contain what the gold answer needs, and are they ranked first? |
-| Component: generation | The Answerer given the gold passages, not retrieved ones | `Answerer` with a fake `Retriever` | Given the right evidence, does the model answer correctly, cite it, and pick the right Response Type? Separates model failures from retrieval misses. |
+| Component: generation | The Answerer given the gold chunks, not retrieved ones | `Answerer` with a fake `Retriever` | Given the right evidence, does the model stick to it and answer the question asked? Separates model failures from retrieval misses. |
 | Pipeline | Retrieval and generation together | `Answerer.answer(ChatRequest)` | The end-to-end answer quality an Employee would get. |
 | Application | The running API over HTTP | `POST /api/chat` | Behaviour of the deployed system: response schema, errors, rate limits, latency, Refusals of injection and privacy questions. |
 
@@ -26,7 +26,7 @@ Each stage is reviewed before the next begins.
 
 1. **Retriever golden data** (done). `evals/retrieval/build_goldens.py` writes `evals/retrieval/goldens_v1.jsonl`. See [Retriever golden data](#retriever-golden-data).
 2. **Retriever eval, run by hand.** `evals/retrieval/run_eval.py` scores Contextual Recall and Contextual Precision against the dev collection and writes results per run. See [Retriever eval](#retriever-eval).
-3. **Generation golden data and eval.** Reuses the supporting passages already in the retriever goldens' `context` field as the fake retriever's output.
+3. **Generation golden data and eval.** `evals/generation/build_goldens.py` writes `evals/generation/goldens_v1.jsonl`. See [Generation golden data](#generation-golden-data).
 4. **Pipeline golden data and eval.** Adds the questions the retriever level leaves out: Clarification, Abstention and Refusal cases, and the privacy and injection questions.
 5. **Application golden data and eval.** A smaller set sent over HTTP.
 6. **CI.** A manually triggered workflow that runs the evals and keeps each run's results.
@@ -35,7 +35,7 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
 
 ## Retriever golden data
 
-- **Source.** The question list comes from file 07, and the gold answer and supporting passages from file 08, joined by `question_id`. The build checks that both files hold the same IDs and agree on question, category, difficulty, expected behaviour, expected answer and source sections, and fails on any difference.
+- **Source.** `evals/eval_questions.json`, a pretty-printed JSON array of the 125 questions with their gold answers and supporting passages. It replaced two files that held the same questions: `07_RAG_Evaluation_Questions.csv`, whose columns all repeated in `08_RAG_Evaluation_Gold_Answers.jsonl`. The build fails on duplicate question IDs.
 - **Which questions.** Every question whose expected behaviour is `answer`, except two categories:
   - `versioning_temporal` (12): the right chunk depends on the Applicable Date and which Document Version was in force, and retrieval has no date filter yet. They return when it does.
   - `privacy_injection_robustness` (3): they cite `NDS-TEST-INJ-010`, a Test Fixture that isn't in the Corpus. They test the Answerer's resistance to injected content, so they belong to the pipeline level.
@@ -43,13 +43,23 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
   That leaves **89 questions**: factual retrieval 14, numerical calculation 14, conditional eligibility 13, multi-hop 13, cross-document 13, semantic paraphrase 11, table extraction 11. Questions expecting a Clarification, Abstention or Refusal are left out because they have no right context to retrieve.
 - **Shape.** Each line is a DeepEval Golden, loadable with `EvaluationDataset.add_goldens_from_jsonl_file`:
   - `input`: the question.
-  - `expected_output`: the full `gold_answer` from file 08, not the short `expected_answer` from file 07. Contextual Recall splits this into statements, so the fuller answer gives a fairer score.
+  - `expected_output`: the full `gold_answer` from file 08, not the short `expected_answer`. Contextual Recall splits this into statements, so the fuller answer gives a fairer score.
   - `context`: the verbatim quotes from `supporting_passages`. The retriever metrics don't use it; the generation stage will.
   - `additional_metadata`: question ID, category, difficulty, source Document IDs and source sections, so results can be broken down by category.
 - **Checks.** Every cited Document ID must be in `data/manifest.yaml`, and every question must have a gold answer and supporting passages.
-- **Normalisation.** The source files write sections with the section sign; the build spells it out as "section 6.1".
-- **Fixed set.** The file is regenerated only by the script, never edited by hand. A change to which questions are included produces a new version (`goldens_v2.jsonl`), so runs on different sets are never compared by mistake.
+- **Normalisation.** The original files wrote sections with the section sign. `eval_questions.json` spells it out as "section 6.1", and the build fails if the sign comes back.
+- **Fixed set.** The file is regenerated only by the script, never edited by hand. The script also writes a pretty-printed copy (`goldens_v1.json`) for reading; the evals load only the JSONL file. The generation goldens do the same. A change to which questions are included produces a new version (`goldens_v2.jsonl`), so runs on different sets are never compared by mistake.
 - **Standalone.** The script uses only the Python standard library and lives beside the data it produces, outside the backend package. It reads Document IDs from the manifest by pattern match, which is enough to catch an unknown ID.
+
+## Generation golden data
+
+- **Which questions.** The same 89 as the retriever goldens, read from `evals/retrieval/goldens_v1.jsonl`, so the two levels line up question by question. `versioning_temporal` stays out to match; the injection questions go to the pipeline level.
+- **Evidence.** Each question's gold chunks are found offline, with no Qdrant or embeddings. The build makes every chunk the way ingestion does (`build_chunks` with the chosen chunking strategy). For each supporting passage, it takes every chunk of the cited Document ID whose section number is the passage's section or one of its subsections ("6.3, Table 6.3" takes section 6.3), or, for a deck, the cited slide. The Document ID is needed because section numbers repeat across documents. The quotes aren't matched: the section rule needs no text comparison, and a whole section gives the model the table headings and conditions a quote leaves out. (The quotes are verbatim in the source, but the PDF parser writes `<br>` where a table cell wraps, so 26 of the 149 don't match chunk text character for character.)
+- **No manual step.** When a section spans several chunks, all of them are used. A passage whose section names no chunk is skipped and listed; the build fails only if a question gets no chunks. On `chunking_v2` one passage is skipped: `NDS-EVAL-082`'s "Superseded notice", a banner ingestion strips. Questions get 1 to 6 chunks, most 1 or 2.
+- **No dependency on `retrieval_k`.** The gold chunks come from the gold data, and the fake retriever returns them whatever `k` it is asked for. A question whose evidence spans more chunks than `k` gets more here than production gives it; that gap is retrieval's, and the pipeline level measures it.
+- **Frozen.** The chunks are stored in the golden, so a prompt or model change is compared on the same input. Each golden records its `chunking_version`; goldens for another strategy are a new version, built with `--chunking`.
+- **Shape.** `input`, `expected_output` and `context` as in the retriever goldens. `retrieval_context` holds each gold chunk's full text, header lines included, as the model sees it. `additional_metadata` adds the As-Of Date, `must_mention`, `must_not_claim`, the chunking version, any skipped passages, and the full chunks with metadata for the fake retriever.
+- **Metrics.** DeepEval `FaithfulnessMetric` (are the reply's claims supported by the gold chunks?) and `AnswerRelevancyMetric` (does the reply address the question?). Neither uses the gold answer, so a grounded but wrong answer can score well; correctness and citation accuracy come at the pipeline or application level.
 
 ## Retriever eval
 
@@ -104,5 +114,5 @@ The criteria for choosing a judge, most important first:
 
 - DeepEval becomes a development dependency, and each eval run costs judge tokens.
 - Eval results live in files in the repo rather than a hosted dashboard, so comparing runs means comparing files.
-- The eval data files 07 and 08 become a maintained asset: a change to them means regenerating the goldens and, if the included questions change, a new golden version.
+- The eval questions file becomes a maintained asset: a change to them means regenerating the goldens and, if the included questions change, a new golden version.
 - ADR 0005 was accepted on 2026-10-28, after retriever eval runs showed `chunking_v2` scores at least as well as `chunking_v1`.
