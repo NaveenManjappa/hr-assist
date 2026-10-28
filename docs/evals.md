@@ -2,7 +2,7 @@
 
 This guide explains how we measure HR Assist's quality, and how to run the evals yourself. You don't need to know anything about evals before you start. [ADR 0006](adr/0006-evals-with-deepeval-in-stages.md) records the decisions behind them.
 
-> **Status:** only the **retriever eval** exists so far. The generation, pipeline and application evals are later stages (see [What comes next](#9-what-comes-next)). When you add one, add its section to this guide in the same PR.
+> **Status:** the **retriever eval** and the **generation eval** exist. The pipeline and application evals are later stages (see [What comes next](#10-what-comes-next)). When you add one, add its section to this guide in the same PR.
 
 ## Contents
 
@@ -14,8 +14,9 @@ This guide explains how we measure HR Assist's quality, and how to run the evals
 6. [Reading the results](#6-reading-the-results)
 7. [Comparing two setups](#7-comparing-two-setups)
 8. [Building the golden files](#8-building-the-golden-files)
-9. [What comes next](#9-what-comes-next)
-10. [Troubleshooting](#10-troubleshooting)
+9. [How to run the generation eval](#9-how-to-run-the-generation-eval)
+10. [What comes next](#10-what-comes-next)
+11. [Troubleshooting](#11-troubleshooting)
 
 ## 1. What an eval is
 
@@ -32,7 +33,7 @@ We have 125 test questions, each with a correct answer written by hand. The eval
 | **Golden** | One test question, with its correct answer and the policy text that supports it. The goldens file is the answer key. |
 | **Retriever** | The part of HR Assist that searches the policy index and returns the most relevant chunks for a question. |
 | **Chunk** | A piece of a policy document as stored in the index, usually one numbered section. |
-| **Judge model** | A second AI model that reads the results and decides the scores. We use `gpt-6-sol`. This is called "LLM-as-a-judge". |
+| **Judge model** | A second AI model that reads the results and decides the scores. We use `gpt-5.6-luna`. This is called "LLM-as-a-judge". |
 | **DeepEval** | The Python library that runs the judge and works out the scores. |
 | **Contextual Recall** | Did the retrieved chunks contain *everything* the correct answer needs? 1.0 means every fact in the correct answer can be found in them. |
 | **Contextual Precision** | Were the *useful* chunks ranked at the top, above the unhelpful ones? 1.0 means every useful chunk came first. |
@@ -60,13 +61,13 @@ You need:
 
 - the backend set up as in the [README](../README.md) (uv installed, a `.env` file at the repo root);
 - the **dev collection ingested**, so the index has chunks. If you're not sure, run `uv run hr-assist ingest` from `backend/` (about a minute, and almost free);
-- an `OPENAI_API_KEY` in `.env` that can use `gpt-6-sol`. The judge uses the same key as the app.
+- an `OPENAI_API_KEY` in `.env` that can use `gpt-5.6-luna`. The judge uses the same key as the app.
 
 The eval reads the same settings as the app: `APP_ENV`, `CHUNKING_VERSION`, `EMBEDDING_MODEL`, `RETRIEVAL_K` and `RETRIEVAL_SCORE_THRESHOLD`. Together they decide which collection is searched and how. So **what you have in `.env` is what gets measured.**
 
 You don't need to install anything extra. DeepEval is in its own `evals` dependency group, and the `--group evals` in the command below installs it the first time.
 
-**Cost:** the judge isn't free. A full run costs about **$1.50**, and a 3-question smoke test about **$0.05**.
+**Cost:** the judge isn't free. A full run costs about **$0.20**, and a 3-question smoke test about **$0.01**. Runs before 28 October 2026 used `gpt-6-sol`, which cost about $1.57 a run; their scores can't be compared with runs by the current judge.
 
 ## 5. How to run the retriever eval
 
@@ -88,7 +89,7 @@ overall                           1.000                 0.983          3
 factual_retrieval                 1.000                 0.983          3
 
 Questions with no chunk retrieved: 0
-Judge cost: $0.05
+Judge cost: $0.01
 Wrote evals/results/retrieval/summary_20261028_074111.json
 Wrote evals/results/retrieval/report_20261028_074111.md
 ```
@@ -173,7 +174,7 @@ These belong to the eval only. The app never uses them:
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `EVAL_JUDGE_MODEL` in `.env`, or `--judge-model` on the command line | `gpt-6-sol` | The judge that scores the results. Scores from different judges can't be compared |
+| `EVAL_JUDGE_MODEL` in `.env`, or `--judge-model` on the command line | `gpt-5.6-luna` | The judge that scores the results. Scores from different judges can't be compared |
 | `--limit N` on the command line | all 89 | Runs only the first N questions, as a smoke test |
 
 Settings such as `CHAT_MODEL`, `REASONING_EFFORT` and `HISTORY_TURNS` change the answers but not the retrieval scores. They'll matter from the generation eval on. For every setting, see the [developer guide, section 4.2](developer-guide.md#42-every-setting).
@@ -319,22 +320,88 @@ Make a new version of the golden file, for example `goldens_v2.jsonl`. Do not wr
 - For the retriever goldens, change `OUTPUT` in `evals/retrieval/build_goldens.py` and `GOLDENS` in `evals/retrieval/run_eval.py`.
 - For the generation goldens, change `OUTPUT` and `RETRIEVAL_GOLDENS` in `evals/generation/build_goldens.py`.
 
-## 9. What comes next
+## 9. How to run the generation eval
+
+### What the generation eval checks
+
+The generation eval checks the **answers only**. It does not search the index. For each golden, the runner:
+
+1. gives the Answerer the gold chunks of the question, through a fake retriever;
+2. sends the question to the real chat model, with the prompt and settings of the app;
+3. asks the judge to score the reply.
+
+Thus the model always has the correct evidence. A low score shows a problem in the model or the prompt, not in the search.
+
+The eval uses the 89 questions of the generation goldens. These are the same questions as the retriever eval.
+
+### The scores
+
+| Score | What it measures |
+| --- | --- |
+| **Faithfulness** | Are all the claims in the reply supported by the gold chunks? 1.0 means that the reply adds nothing that the chunks do not say. |
+| **Answer Relevancy** | Does the reply answer the question? 1.0 means that each statement in the reply is about the question. |
+
+These scores do not compare the reply with the expected answer. A reply can be faithful and relevant, but incomplete. The report shows the expected answer, so that you can compare them yourself. Correctness and citations get scores in a later stage.
+
+**Replies that are not an Answer.** Each question in the goldens must get an Answer. Sometimes the model replies with a Clarification, an Abstention or a Refusal. The judge does not score this reply. The reply gets 0 for the two scores, and the summary lists it under `non_answers`. Faithfulness would give such a reply a high score, because it makes no claims. The 0 prevents this.
+
+**Errors.** When the chat model cannot be reached, or its reply cannot be read, the question gets 0 for the two scores. The summary lists it under `generation_errors`.
+
+### Before you start
+
+You need the items in [section 4](#4-before-you-start), but you do not need the index. The eval does not use Qdrant.
+
+The eval uses the chat model settings in `.env`: `CHAT_MODEL`, `REASONING_EFFORT` and `MAX_OUTPUT_TOKENS`. The value of `RETRIEVAL_K` has no effect.
+
+### The procedure
+
+Do these steps from the repo root.
+
+1. Do a smoke test with 3 questions:
+
+   ```bash
+   uv run --project backend --group evals python evals/generation/run_eval.py --limit 3
+   ```
+
+2. Make sure that the output shows a table of scores and the judge cost. The smoke test costs approximately $0.01 and takes approximately 2 minutes. The full run costs approximately $0.20.
+3. Do the full run with the 89 questions:
+
+   ```bash
+   uv run --project backend --group evals python evals/generation/run_eval.py
+   ```
+
+4. Read the report. The output shows the path of the report.
+
+To use a different judge, add `--judge-model <model>`. The judge must accept the parameter `temperature=0`. If the judge is not in the model list of DeepEval, DeepEval sends this value.
+
+### The results
+
+The runner writes three files in `evals/results/generation/`. The names of the files contain the date and time of the run.
+
+| File | Contents |
+| --- | --- |
+| `test_run_*.json` | The DeepEval results: each verdict and reason of the judge. |
+| `summary_*.json` | The settings of the run, the judge cost, the tokens of the chat model, the mean scores for all questions and for each category, and each reply with its scores. Use this file to compare runs. |
+| `report_*.md` | The same results, for reading. Each question shows the question, the expected answer, the reply, the reasons of the judge and the gold chunks. The question with the lowest score is first. |
+
+Compare two runs only when they used the same judge and the same goldens file. The summary records the two. The scores change a little between runs, also with the same settings, because the chat model and the judge do not always give the same output.
+
+## 10. What comes next
 
 Evals are built one stage at a time (ADR 0006):
 
 | Stage | What it measures | Status |
 | --- | --- | --- |
 | 1. Retriever goldens | The 89 test questions for search | Done |
-| 2. Retriever eval | Search quality | **Done (this guide)** |
-| 3. Generation eval | Answer quality when the model is given the right chunks | Goldens built (`evals/generation/goldens_v1.jsonl`); eval not started |
+| 2. Retriever eval | Search quality | **Done ([section 5](#5-how-to-run-the-retriever-eval))** |
+| 3. Generation eval | Answer quality when the model is given the right chunks | **Done ([section 9](#9-how-to-run-the-generation-eval))** |
 | 4. Pipeline eval | Search and answering together, plus clarifications, abstentions and refusals | Not started |
 | 5. Application eval | The live API over HTTP | Not started |
 | 6. CI | Running the evals from GitHub Actions | Not started |
 
 Until stage 6, evals are run by hand and never in CI. They cost money and their scores vary a little between runs, so they would make builds slow and unreliable.
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 | What you see | What it means | What to do |
 | --- | --- | --- |
@@ -342,5 +409,6 @@ Until stage 6, evals are run by hand and never in CI. They cost money and their 
 | `ValidationError` for `Settings` (for example `openai_api_key` missing) | `.env` is missing or incomplete | Copy `.env.example` to `.env` and fill it in |
 | `No module named 'deepeval'` | The `evals` group wasn't included | Keep `--group evals` in the command |
 | `can't open file '.../evals/retrieval/run_eval.py'` | You ran it from `backend/` | Run it from the repo root |
-| An OpenAI rate limit or authentication error | The key can't use `gpt-6-sol`, or is being rate-limited | Check the key's project in the OpenAI dashboard, then rerun |
+| `'temperature' does not support 0.0 with this model` | `EVAL_JUDGE_MODEL` names a model that DeepEval 4.3.2 does not know, and that model rejects `temperature=0` | Use `gpt-5.6-luna`, or give it with `--judge-model gpt-5.6-luna` |
+| An OpenAI rate limit or authentication error | The key can't use `gpt-5.6-luna`, or is being rate-limited | Check the key's project in the OpenAI dashboard, then rerun |
 | "Questions with no chunk retrieved" equals the number of questions | The collection is empty, or the threshold is too high | Re-ingest, and check `RETRIEVAL_SCORE_THRESHOLD` |

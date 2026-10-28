@@ -53,7 +53,7 @@ class EvalSettings(BaseSettings):
         env_file=REPO_ROOT_ENV_FILE, env_ignore_empty=True, extra="ignore"
     )
 
-    eval_judge_model: str = "gpt-6-sol"
+    eval_judge_model: str = "gpt-5.6-luna"
 
 
 async def retrieve_all(settings: Settings, questions: list[str]) -> list[list[str]]:
@@ -187,7 +187,7 @@ def write_report(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the retriever eval (ADR 0006).")
-    parser.add_argument("--judge-model", help="Overrides EVAL_JUDGE_MODEL (default gpt-6-sol)")
+    parser.add_argument("--judge-model", help="Overrides EVAL_JUDGE_MODEL (default gpt-5.6-luna)")
     parser.add_argument(
         "--limit", type=int, help="Run only the first N goldens, as a cheap smoke test"
     )

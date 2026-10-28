@@ -360,7 +360,7 @@ Important details:
 | `RATE_LIMIT_PER_DAY` | positive integer | `100` | `RateLimiter` | Per IP, UTC day. |
 | `RATE_LIMIT_GLOBAL_PER_DAY` | positive integer | `1000` | `RateLimiter` | All clients, UTC day. |
 | `TRUSTED_PROXY_HOPS` | integer ≥ 0 | `1` | `client_ip` | Production uses `2` (see [10.4](#104-rate-limiting)). |
-| `EVAL_JUDGE_MODEL` | string | `gpt-6-sol` | `evals/retrieval/run_eval.py` | The eval's judge model. Not in `Settings`, because the API never uses it. `--judge-model` overrides it. See the [evals guide](evals.md). |
+| `EVAL_JUDGE_MODEL` | string | `gpt-5.6-luna` | `evals/retrieval/run_eval.py`, `evals/generation/run_eval.py` | The eval's judge model. Not in `Settings`, because the API never uses it. `--judge-model` overrides it. See the [evals guide](evals.md). |
 
 ### 4.3 The collection name
 
@@ -1320,7 +1320,7 @@ The retriever eval scores the 89 answerable questions it can test (`evals/retrie
 uv run --project backend --group evals python evals/retrieval/run_eval.py   # --limit 3 for a smoke test
 ```
 
-It uses the app's `Settings` and the collection they name, and writes a `test_run_*.json`, a `summary_*.json` and a readable `report_*.md` to `evals/results/retrieval/`. A full run costs about $1.50 in judge tokens. The [evals guide](evals.md) walks through running it and reading the results.
+It uses the app's `Settings` and the collection they name, and writes a `test_run_*.json`, a `summary_*.json` and a readable `report_*.md` to `evals/results/retrieval/`. A full run costs about $0.20 in judge tokens. The [evals guide](evals.md) walks through running it and reading the results.
 
 The gold file has verbatim passages. An automated harness can match each passage against the retrieved chunk text to find the rank of the correct chunk. The `Answerer` takes Protocols, so a harness can call it directly, without HTTP.
 

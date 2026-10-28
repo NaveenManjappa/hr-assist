@@ -61,9 +61,19 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
 - **Shape.** `input`, `expected_output` and `context` as in the retriever goldens. `retrieval_context` holds each gold chunk's full text, header lines included, as the model sees it. `additional_metadata` adds the As-Of Date, `must_mention`, `must_not_claim`, the chunking version, any skipped passages, and the full chunks with metadata for the fake retriever.
 - **Metrics.** DeepEval `FaithfulnessMetric` (are the reply's claims supported by the gold chunks?) and `AnswerRelevancyMetric` (does the reply address the question?). Neither uses the gold answer, so a grounded but wrong answer can score well; correctness and citation accuracy come at the pipeline or application level.
 
+## Generation eval
+
+- **Running it.** From the repo root, `uv run --project backend --group evals python evals/generation/run_eval.py`, with `--limit N` for a smoke test and `--judge-model` to override the judge. A 3-question smoke run cost $0.006 in judge tokens with `gpt-5.6-luna`, so a full run is expected to cost about $0.20.
+- **What answers.** The real `Answerer` and `OpenAIChatModel`, with the chat model, reasoning effort and output cap from `Settings`, so the eval measures what the app does. A `FixedRetriever` returns the golden's frozen chunks and ignores `k`. Each question is asked on its own, with the golden's As-Of Date.
+- **What is judged.** `actual_output` is the reply with its `[n]` source markers removed; `retrieval_context` is the gold chunks as the model sees them. Only replies whose Response Type is Answer are judged.
+- **Non-answers score 0.** Every generation golden expects an Answer. A Clarification, Abstention or Refusal isn't sent to the judge: it scores 0 on both metrics and is listed under `non_answers`. Faithfulness would otherwise rate it highly, because it makes no claims. An `UpstreamError` also scores 0 and is listed under `generation_errors`.
+- **Every setting is recorded**: chat model, reasoning effort, output cap, prompt version, chunking version of the goldens, judge model, and golden file name, hash and number used. `retrieval_k` isn't, because it has no effect. The summary also holds the generator's token totals and each reply.
+- **Results.** The same three files as the retriever eval, under `evals/results/generation/`. The report shows each reply beside the expected answer, because neither metric compares them.
+- **No tracing**, as in the retriever eval.
+
 ## Retriever eval
 
-- **Running it.** From the repo root, `uv run --project backend --group evals python evals/retrieval/run_eval.py`. DeepEval is in its own `evals` dependency group, so CI doesn't install it. `--limit N` runs the first N goldens as a cheap smoke test; the summary records how many were used. A full run costs about $1.50 in judge tokens with `gpt-6-sol`.
+- **Running it.** From the repo root, `uv run --project backend --group evals python evals/retrieval/run_eval.py`. DeepEval is in its own `evals` dependency group, so CI doesn't install it. `--limit N` runs the first N goldens as a cheap smoke test; the summary records how many were used. A full run costs about $0.20 in judge tokens with `gpt-5.6-luna` (it cost about $1.57 with `gpt-6-sol`, the first judge).
 - **Metrics.** DeepEval `ContextualRecallMetric` (what share of the gold answer's statements can be attributed to the retrieved chunks) and `ContextualPrecisionMetric` (whether the relevant chunks are ranked above the irrelevant ones). Only scores are recorded. DeepEval's `evaluate()` refuses metrics without a threshold, so both are given `threshold=0` and every case passes; pass and fail mean nothing here. `eval_mode="llm"` is pinned, so `DEEPEVAL_EVAL_MODE` can't hand the decisions to another model.
 - **What is retrieved.** The real `QdrantRetriever` against the dev collection (`development-{chunking_version}-{embedding_model}`), with `retrieval_k` and `retrieval_score_threshold` read from `Settings`, so the eval measures what the app does. `retrieval_context` is each chunk's full text, header lines included, as the model sees it.
 - **No answer is generated.** Neither metric needs `actual_output`, so it is left unset.
@@ -79,7 +89,7 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
 
 ### Judge model
 
-The judge is **`gpt-6-sol`**, set through `EVAL_JUDGE_MODEL` (in the environment or `.env`, with a `--judge-model` override), not through the app's `Settings`, because the API never uses it. A dated snapshot ID is used when one exists, so the judge can't change between runs; DeepEval 4.3.2 lists none for `gpt-6-sol`, so the plain ID is used for now.
+The judge is **`gpt-5.6-luna`**, set through `EVAL_JUDGE_MODEL` (in the environment or `.env`, with a `--judge-model` override), not through the app's `Settings`, because the API never uses it. A dated snapshot ID is used when one exists, so the judge can't change between runs; DeepEval 4.3.2 lists none for `gpt-5.6-luna`, so the plain ID is used for now.
 
 The criteria for choosing a judge, most important first:
 
@@ -91,7 +101,13 @@ The criteria for choosing a judge, most important first:
 6. Cost per run, which is small at this volume (89 questions, a few judge calls each).
 7. Being a different model from the generator, which matters from the generation stage on, where a model tends to favour its own answers.
 
-`gpt-6-luna`, the generator, was not chosen as the judge: as the cheapest model it is the most likely to miss detail or break the JSON format, and it would be judging its own answers at later stages. That is a prior, not a measurement; the hand-labelled sample can test it.
+`gpt-6-luna`, the generator, was not chosen as the judge: it would be judging its own answers from the generation stage on.
+
+**Changed from `gpt-6-sol` on 2026-10-28, for cost.** The first judge was `gpt-6-sol` ($2 input, $10 output per million tokens); a full retriever run cost about $1.57. `gpt-5.6-luna` ($0.20 / $1.20) costs about a tenth: 3-question smoke runs cost $0.005 to $0.006 against $0.047. DeepEval knows it, so it uses OpenAI's structured outputs and the judge's JSON is enforced by the API (criterion 3). The risk is criterion 2: a small model is more likely to miss a detail in a table or a number. That is a prior, not a measurement; the hand-labelled sample (criterion 1) should test it before its scores decide anything close.
+
+Considered: `gpt-6.1-terra` ($1 / $5), newer than `gpt-6-sol` at half its price. DeepEval 4.3.2 doesn't list it, so it sends a temperature the model rejects and doesn't request structured outputs; the runners would have to register its capabilities and prices.
+
+Runs judged by `gpt-6-sol`, including the `chunking_v2` runs behind [ADR 0005](0005-split-oversized-sections-at-unnumbered-headings.md), can't be compared with runs judged by `gpt-5.6-luna`. Compare across the change only by re-running the older setting with the new judge.
 
 ## Reading the results
 

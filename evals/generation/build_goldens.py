@@ -31,9 +31,7 @@ _SLIDE = re.compile(r"Slide\s+(\d+)", re.IGNORECASE)
 def gold_chunks(passage: dict, chunks: list[Chunk]) -> list[Chunk]:
     """Every chunk of the passage's section, subsections included, in document order."""
     section = passage["section"].strip()
-    of_document = [
-        c for c in chunks if c.metadata.document_id == passage["document_id"]
-    ]
+    of_document = [c for c in chunks if c.metadata.document_id == passage["document_id"]]
     if slide := _SLIDE.match(section):
         return [c for c in of_document if c.metadata.slide == int(slide.group(1))]
     if number := _SECTION_NUMBER.match(section):
@@ -53,8 +51,7 @@ def gold_chunks(passage: dict, chunks: list[Chunk]) -> list[Chunk]:
 def build_goldens(chunking_version: str) -> tuple[list[dict], list[str]]:
     """The goldens, and a line for each passage whose section names no chunk."""
     questions = {
-        q["question_id"]: q
-        for q in json.loads(EVAL_QUESTIONS.read_text(encoding="utf-8"))
+        q["question_id"]: q for q in json.loads(EVAL_QUESTIONS.read_text(encoding="utf-8"))
     }
     # The same questions as the retriever goldens, so the two levels line up question by question.
     question_ids = [
@@ -109,10 +106,7 @@ def main() -> None:
 
     goldens, unresolved = build_goldens(args.chunking)
     args.output.write_text(
-        "".join(
-            json.dumps(g, ensure_ascii=False, separators=(",", ":")) + "\n"
-            for g in goldens
-        )
+        "".join(json.dumps(g, ensure_ascii=False, separators=(",", ":")) + "\n" for g in goldens)
     )
     # A pretty-printed copy for reading; the evals load the JSONL file.
     args.output.with_suffix(".json").write_text(

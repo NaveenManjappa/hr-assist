@@ -30,9 +30,7 @@ def build_goldens() -> list[dict]:
     text = EVAL_QUESTIONS.read_text(encoding="utf-8")
     # The project writes "section 6.1", never the section sign.
     if "\u00a7" in text:
-        sys.exit(
-            f"{EVAL_QUESTIONS.name} contains the section sign; write 'section' instead"
-        )
+        sys.exit(f"{EVAL_QUESTIONS.name} contains the section sign; write 'section' instead")
     questions = json.loads(text)
     ids = [q["question_id"] for q in questions]
     if len(ids) != len(set(ids)):
@@ -56,9 +54,7 @@ def build_goldens() -> list[dict]:
             {
                 "input": question["question"],
                 "expected_output": question["gold_answer"],
-                "context": [
-                    passage["quote"] for passage in question["supporting_passages"]
-                ],
+                "context": [passage["quote"] for passage in question["supporting_passages"]],
                 "additional_metadata": {
                     "question_id": question_id,
                     "category": question["category"],
@@ -74,15 +70,10 @@ def build_goldens() -> list[dict]:
 def main() -> None:
     goldens = build_goldens()
     OUTPUT.write_text(
-        "".join(
-            json.dumps(g, ensure_ascii=False, separators=(",", ":")) + "\n"
-            for g in goldens
-        )
+        "".join(json.dumps(g, ensure_ascii=False, separators=(",", ":")) + "\n" for g in goldens)
     )
     # A pretty-printed copy for reading; the evals load the JSONL file.
-    OUTPUT.with_suffix(".json").write_text(
-        json.dumps(goldens, indent=2, ensure_ascii=False) + "\n"
-    )
+    OUTPUT.with_suffix(".json").write_text(json.dumps(goldens, indent=2, ensure_ascii=False) + "\n")
     categories: dict[str, int] = {}
     for golden in goldens:
         category = golden["additional_metadata"]["category"]
@@ -90,9 +81,7 @@ def main() -> None:
     for category, count in categories.items():
         print(f"{category}: {count}")
     written = OUTPUT.relative_to(REPO_ROOT)
-    print(
-        f"Wrote {len(goldens)} retrieval goldens to {written}, and a readable copy in .json"
-    )
+    print(f"Wrote {len(goldens)} retrieval goldens to {written}, and a readable copy in .json")
 
 
 if __name__ == "__main__":
