@@ -4,7 +4,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.messages import BaseMessage
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, models
 
 from hr_assist.answering.models import AssistantReply, GeneratedReply
 from hr_assist.corpus import Chunk, ChunkMetadata
@@ -26,12 +26,24 @@ class QdrantRetriever:
             validate_collection_config=False,
         )
         self._score_threshold = settings.retrieval_score_threshold
+        # Superseded documents stay indexed but aren't searched (ADR 0007).
+        self._current_only = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="metadata.status", match=models.MatchValue(value="current")
+                )
+            ]
+        )
 
     async def retrieve(self, query: str, k: int) -> list[Chunk]:
         try:
             retriever = self._store.as_retriever(
                 search_type="similarity_score_threshold",
-                search_kwargs={"k": k, "score_threshold": float(self._score_threshold)},
+                search_kwargs={
+                    "k": k,
+                    "score_threshold": float(self._score_threshold),
+                    "filter": self._current_only,
+                },
             )
             documents = await retriever.ainvoke(query, config={"run_name": "retrieve"})
         except Exception as exc:

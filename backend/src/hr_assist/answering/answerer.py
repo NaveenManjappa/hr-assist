@@ -7,7 +7,13 @@ from typing import Protocol
 from langchain_core.messages import BaseMessage
 from langsmith import traceable
 
-from hr_assist.answering.models import ChatRequest, ChatResponse, Citation, GeneratedReply
+from hr_assist.answering.models import (
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
+    Citation,
+    GeneratedReply,
+)
 from hr_assist.answering.prompt import PROMPT_VERSION, build_prompt
 from hr_assist.corpus import Chunk
 
@@ -48,7 +54,9 @@ class Answerer:
     @traceable(name="chat")
     async def answer(self, request: ChatRequest) -> ChatResponse:
         started = time.perf_counter()
-        chunks = await self._retriever.retrieve(request.messages[-1].content, self._retrieval_k)
+        chunks = await self._retriever.retrieve(
+            _retrieval_query(request.messages), self._retrieval_k
+        )
         if not chunks:
             logger.info(
                 "chat response_type=abstention prompt=none latency_ms=%.0f chunks=[]",
@@ -77,6 +85,15 @@ class Answerer:
             message=message,
             citations=[_citation(chunks[n - 1]) for n in cited],
         )
+
+
+def _retrieval_query(messages: list[ChatMessage]) -> str:
+    """The Employee's last two messages, oldest first.
+
+    A reply to a Clarification, or a short follow-up, means little on its own. Assistant replies
+    are left out: a long one would outweigh a short question in the query's embedding.
+    """
+    return "\n".join(m.content for m in [m for m in messages if m.role == "user"][-2:])
 
 
 def _renumber(message: str, cited_sources: list[int], source_count: int) -> tuple[str, list[int]]:

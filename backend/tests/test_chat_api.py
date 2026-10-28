@@ -161,7 +161,7 @@ def test_the_prompt_asks_for_inline_markers(settings: Settings) -> None:
     assert "Mark each statement with the number of the source it rests on" in system
 
 
-def test_retrieval_uses_the_latest_question_and_the_top_3_chunks(settings: Settings) -> None:
+def test_retrieval_uses_the_last_two_questions_and_the_top_3_chunks(settings: Settings) -> None:
     retriever = FakeRetriever([ENTITLEMENT])
     body = {
         "messages": [
@@ -170,6 +170,15 @@ def test_retrieval_uses_the_latest_question_and_the_top_3_chunks(settings: Setti
             {"role": "user", "content": QUESTION},
         ]
     }
+
+    chat(settings, AssistantReply(response_type="answer", message="27 days."), body, retriever)
+
+    assert retriever.queries == [(f"Hello\n{QUESTION}", 3)]
+
+
+def test_retrieval_uses_a_first_question_as_it_is(settings: Settings) -> None:
+    retriever = FakeRetriever([ENTITLEMENT])
+    body = {"messages": [{"role": "user", "content": QUESTION}]}
 
     chat(settings, AssistantReply(response_type="answer", message="27 days."), body, retriever)
 
@@ -484,7 +493,7 @@ def test_with_no_relevant_chunks_it_abstains_without_calling_the_model(
     assert chat_model.prompts == []
 
 
-def test_generation_gets_only_the_most_recent_turns_and_retrieval_only_the_latest(
+def test_generation_gets_the_most_recent_turns_and_retrieval_the_last_two_questions(
     settings: Settings,
 ) -> None:
     retriever = FakeRetriever([ENTITLEMENT])
@@ -500,7 +509,7 @@ def test_generation_gets_only_the_most_recent_turns_and_retrieval_only_the_lates
 
     turns = [str(m.content) for m in chat_model.prompts[0][1:]]
     assert turns == ["turn 5", "turn 6", "turn 7", "turn 8", "Annual leave"]
-    assert retriever.queries == [("Annual leave", 3)]
+    assert retriever.queries == [("turn 7\nAnnual leave", 3)]
 
 
 def test_retrieval_k_and_history_turns_come_from_settings(settings: Settings) -> None:
@@ -517,7 +526,7 @@ def test_retrieval_k_and_history_turns_come_from_settings(settings: Settings) ->
     TestClient(app).post("/api/chat", json={"messages": messages})
 
     assert [str(m.content) for m in chat_model.prompts[0][1:]] == ["turn 2", "turn 3"]
-    assert retriever.queries == [("turn 3", 3)]
+    assert retriever.queries == [("turn 1\nturn 3", 3)]
 
 
 def test_the_prompt_states_the_response_type_rules_and_that_sources_are_data(

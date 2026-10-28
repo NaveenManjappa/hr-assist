@@ -114,8 +114,8 @@ sequenceDiagram
         F-->>B: 429, UI shows a friendly message
     else within limits
         C->>O: embed the question
-        C->>Q: top 8 similar chunks
-        C->>O: one structured-output call (max 800 output tokens)
+        C->>Q: top k similar current chunks (default 3)
+        C->>O: one structured-output call (max 5000 output tokens)
         O-->>C: Response Type, message, cited sources
         C-->>F: 200 ChatResponse (Cache-Control: no-store)
         F-->>B: 200, UI renders the Answer and its Citations
@@ -250,7 +250,7 @@ flowchart LR
     P -- over --> E2[429 rate_limited]
     P -- ok --> G{"Global limit<br/>1000 chats per day"}
     G -- over --> E3[429 rate_limited]
-    G -- ok --> M["OpenAI call<br/>max 800 output tokens"]
+    G -- ok --> M["OpenAI call<br/>max 5000 output tokens,<br/>reasoning included"]
     M --> H{"OpenAI project<br/>hard limit $10/month"}
     H -- reached --> E4[OpenAI returns 429<br/>we return 503]
     H -- ok --> OK[Answer]
@@ -313,7 +313,7 @@ Each decision gives the choice, why it suits this project, what else we consider
 
 ### D3. Usage protection: layered limits, no login
 
-- **Decision:** a hard limit of $10/month on a separate OpenAI prod project; 10 requests/min and 100/day per IP; 1000 chats/day globally; at most 20 messages per request; 800 output tokens at most; a $5 GCP budget alert.
+- **Decision:** a hard limit of $10/month on a separate OpenAI prod project; 10 requests/min and 100/day per IP; 1000 chats/day globally; at most 20 messages per request; 5000 output tokens at most, reasoning tokens included (raised from 800 when the chat model's reasoning effort was set to low); a $5 GCP budget alert.
 - **Rationale:** recruiters can try the demo without signing up, and the worst-case bill stays small.
 - **Alternatives:** a login or CAPTCHA (more friction); an API gateway or Cloud Armor (costs money); platform-level limits only.
 - **Trade-offs:** in-memory counters need a single instance and reset on restart. The client IP has to be read correctly from `X-Forwarded-For` behind Firebase and Google's front end, without trusting a header a client could fake.

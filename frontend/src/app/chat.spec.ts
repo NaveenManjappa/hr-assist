@@ -258,14 +258,11 @@ describe('Chat page', () => {
     expect(root.querySelector('[data-testid="example"]')).toBeNull();
   });
 
-  it('starts a new conversation from the sidebar, keeping the As-Of Date but not the earlier turns', async () => {
+  it('starts a new conversation from the sidebar, without the earlier turns', async () => {
     const { fixture, root } = await renderPage();
     const newChat = root.querySelector<HTMLButtonElement>('[data-testid="new-chat"]')!;
     expect(newChat.disabled).toBe(true);
 
-    const date = root.querySelector<HTMLInputElement>('input[type="date"]')!;
-    date.value = '2026-06-15';
-    date.dispatchEvent(new Event('change'));
     await ask(root, QUESTION, fixture);
     http
       .expectOne('http://api.test/api/chat')
@@ -285,7 +282,7 @@ describe('Chat page', () => {
     await ask(root, 'How many days a week can I work from home?', fixture);
     expect(http.expectOne('http://api.test/api/chat').request.body).toEqual({
       messages: [{ role: 'user', content: 'How many days a week can I work from home?' }],
-      as_of_date: '2026-06-15',
+      as_of_date: '2026-10-18',
     });
   });
 
@@ -319,21 +316,6 @@ describe('Chat page', () => {
       { role: 'user', content: 'And after 5 years?' },
     ]);
   });
-
-  it('shows the As-Of Date beside the input and sends a changed date with the next question', async () => {
-    const { fixture, root } = await renderPage();
-    const control = root.querySelector<HTMLInputElement>('input[type="date"]')!;
-    expect(root.querySelector('label[for="as-of-date"]')!.textContent).toContain('Answering as of');
-    expect(control.value).toBe('2026-10-18');
-
-    control.value = '2026-06-15';
-    control.dispatchEvent(new Event('change'));
-    await fixture.whenStable();
-    await ask(root, 'What was the carryover rule?', fixture);
-
-    expect(http.expectOne('http://api.test/api/chat').request.body.as_of_date).toBe('2026-06-15');
-  });
-
   it('marks a Citation from a superseded source as Superseded', async () => {
     const { fixture, root } = await renderPage();
     await ask(root, 'On 15 June 2026, what was the carryover rule?', fixture);

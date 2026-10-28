@@ -1,6 +1,6 @@
 # HR Assist
 
-HR Assist is a chat assistant that answers Northstar Digital Services employees' HR policy questions. Every answer comes only from a fixed Corpus of Policy Documents and Summary Decks. Each Answer cites the document, version, section and page (or slide) it relies on. HR Assist knows the As-Of Date and works out the Applicable Date of each question, so it applies the Document Version that was in force at that time. A Policy Document always prevails over a Summary Deck.
+HR Assist is a chat assistant that answers Northstar Digital Services employees' HR policy questions. Every answer comes only from a fixed Corpus of Policy Documents and Summary Decks. Each Answer cites the document, version, section and page (or slide) it relies on. It searches only current Source Documents, so it answers with the rules in force today; questions about earlier versions aren't answered yet ([ADR 0007](docs/adr/0007-search-only-current-documents.md)). A Policy Document always prevails over a Summary Deck.
 
 Every reply has a Response Type:
 
@@ -31,7 +31,7 @@ flowchart LR
     E1 --> Q[(Qdrant<br/>collection:<br/>env-chunking-embedding)]
 
     subgraph Serving["Serving (FastAPI)"]
-        API["POST /api/chat"] --> R[Retrieve top 3 chunks<br/>for the latest message]
+        API["POST /api/chat"] --> R[Retrieve top 3 chunks<br/>for the latest question,<br/>with the previous one]
         R --> Q
         R --> G[Generate<br/>one structured-output call:<br/>Response Type, message, Citations]
         G --> API
@@ -45,7 +45,7 @@ flowchart LR
 - **Ingestion** reads only the files listed in the Corpus Manifest. It rebuilds the whole Qdrant collection on each run. The collection name combines `APP_ENV`, the chunking version and the embedding model, so changing either one produces a new index rather than overwriting the old one.
 - **Answering** always retrieves first, then makes a single LLM call that returns a typed reply. There is no agent loop.
 - **The API** has a chat endpoint and a health endpoint. Errors come back in one consistent JSON shape, and every response carries an `X-Request-ID` header.
-- **The UI** shows inline citation markers, and under each reply a card for each Citation with its supporting snippet, formatted as headings, lists and tables. It also shows the As-Of Date and connection status. A sidebar (a drawer on small screens) starts a new chat and lists the current conversation. An empty chat offers example questions grouped by what they show: cited Answers, version-aware answers, Clarifications, and Abstentions and Refusals. Light, dark and system themes are styled with Tailwind.
+- **The UI** shows inline citation markers, and under each reply a card for each Citation with its supporting snippet, formatted as headings, lists and tables. It also shows the connection status. A sidebar (a drawer on small screens) starts a new chat and lists the current conversation. An empty chat offers example questions grouped by what they show: cited Answers, Clarifications, and Abstentions and Refusals. Light, dark and system themes are styled with Tailwind.
 
 ### Deployed
 
@@ -91,6 +91,7 @@ Architecture decision records:
 - [ADR 0002: OpenAI models, wired as two-step RAG without an agent](docs/adr/0002-openai-models-and-two-step-rag.md)
 - [ADR 0003: Run the API on Cloud Run behind a Firebase Hosting rewrite, on a single instance](docs/adr/0003-cloud-run-behind-firebase-hosting.md)
 - [ADR 0004: Deploy from GitHub Actions with a service account key, before moving to Workload Identity Federation](docs/adr/0004-service-account-key-before-wif.md)
+- [ADR 0007: Search only current Source Documents, and park version-aware answers](docs/adr/0007-search-only-current-documents.md)
 
 How HR Assist is deployed, and why, is explained step by step in the [deployment guide](docs/deployment.md).
 
@@ -197,7 +198,7 @@ The Corpus Manifest at [data/manifest.yaml](data/manifest.yaml) is the only list
      effective_to: null
    ```
 
-3. **To supersede a document** with a new version, add the new entry as above. Then edit the old entry: set `status: superseded`, set `effective_to` to the day before the new version takes effect, and add `superseded_by: <new Document ID>`. Optionally move the old file to `data/policies/archived/` and update its `path`. Keep the old entry, because HR Assist still uses it for questions about the period when it was in force.
+3. **To supersede a document** with a new version, add the new entry as above. Then edit the old entry: set `status: superseded`, set `effective_to` to the day before the new version takes effect, and add `superseded_by: <new Document ID>`. Optionally move the old file to `data/policies/archived/` and update its `path`. Keep the old entry. It stays in the index, but retrieval skips superseded documents for now ([ADR 0007](docs/adr/0007-search-only-current-documents.md)).
 4. Run `uv run hr-assist ingest` from `backend/`.
 
 Ingestion checks every entry against the file itself: the running header of a PDF, or the title slide of a deck. It fails if the Document ID or Document Version doesn't match, so a manifest entry can't silently drift from its file.
@@ -228,8 +229,8 @@ GitHub runs scheduled workflows only from the default branch, and turns them off
 ## Known limitations
 
 - **Only retrieval is evaluated.** The retriever eval ([ADR 0006](docs/adr/0006-evals-with-deepeval-in-stages.md)) scores the chunks returned for each question, but answer quality isn't measured yet. Generation, pipeline and application evals are the next stages.
-- **Short follow-ups retrieve poorly.** Retrieval uses only the latest message. A follow-up such as "and for part-timers?" searches on those words alone, without the earlier question. The last 5 messages do reach the model, but the chunks it needs may not have been retrieved.
-- **No metadata filtering.** Retrieval is pure vector similarity. Superseded Source Documents and Summary Decks compete with current Policy Documents for the top 8 places, and only the prompt decides which one prevails.
+- **Follow-ups keep only one question of context.** Retrieval searches with the Employee's last two messages, so a reply to a Clarification, or a follow-up such as "and for part-timers?", is searched together with the question before it. A follow-up about something asked two or more questions earlier still searches without it. The last 5 messages do reach the model, but the chunks it needs may not have been retrieved.
+- **Only current documents are searched.** Questions about a past date, such as "What was the carryover rule on 15 June 2026?", can't find the superseded policy, so they get today's rules or an Abstention ([ADR 0007](docs/adr/0007-search-only-current-documents.md)). Summary Decks still compete with Policy Documents for places, and the prompt decides which one prevails.
 - **No streaming.** The reply appears all at once, after the full answer has been generated.
 - **The demo is rate-limited.** Each IP can send 10 chats a minute and 100 a day, and the whole demo answers at most 1000 a day. Beyond that, chats are rejected until the window resets (daily limits reset at midnight UTC). The OpenAI project also stops at $10 a month.
 - **Conversations are logged.** Every question and reply is traced to LangSmith, and Cloud Run's logs keep each visitor's IP address for 30 days by default. The UI says so on first load.

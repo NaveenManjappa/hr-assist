@@ -210,6 +210,8 @@ To re-ingest, run `uv run hr-assist ingest` from `backend/`.
 5. Compare the two summaries.
 6. Set `.env` back to the setup the app should use. Your local app reads the same file.
 
+**Runs from before [ADR 0007](adr/0007-search-only-current-documents.md) aren't comparable with later ones.** Until then, retrieval also searched superseded documents. The first `chunking_v1` run (`summary_20261028_075208.json`) is one of these, so run `chunking_v1` again before comparing it with `chunking_v2`.
+
 Before comparing, check each summary's `hyperparameters`:
 
 - **`judge_model` and `goldens_sha256` must be the same.** If either differs, the scores aren't comparable.

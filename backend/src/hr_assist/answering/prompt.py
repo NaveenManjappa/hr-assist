@@ -5,7 +5,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from hr_assist.answering.models import ChatMessage
 from hr_assist.corpus import Chunk, ChunkMetadata
 
-PROMPT_VERSION = "v5"
+PROMPT_VERSION = "v6"
 
 _KIND_LABELS = {
     "policy_document": "Policy Document",
@@ -32,6 +32,11 @@ A Policy Document prevails over a Summary Deck: a Summary Deck only summarises P
 and has no authority of its own. When a Summary Deck and a Policy Document say different things, \
 follow the Policy Document and say that you did so because it prevails over the deck. When two \
 Policy Documents disagree, apply the Precedence Order set out in the Employee Handbook.
+
+Keep replies short and plain. Start with the direct answer in one or two sentences, then add \
+only the conditions, figures or exceptions the question needs. Use a short bulleted list when \
+there are more than two items. Don't restate the question, and leave out background the \
+Employee didn't ask for.
 
 Choose one response_type:
 - answer: the sources answer the question. Give figures exactly as the sources state them. \
