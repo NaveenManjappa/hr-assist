@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Split oversized sections at their unnumbered headings (`chunking_v2`)
@@ -27,7 +27,7 @@ The same sections are split, but at different points. Three of them (Handbook se
 
 ## Rollout
 
-`CHUNKING_VERSION` selects the strategy at ingestion (`STRATEGIES` in `ingestion/chunking.py`) and names the collection, so `chunking_v2` builds a new collection beside the `chunking_v1` one. `chunking_v2` is the default. Production reads its version from that default, so run **Ingest (prod)** from the branch before merging, otherwise the deployed API looks for a collection that doesn't exist yet. Mark this ADR accepted once the evals show `chunking_v2` is at least as good as `chunking_v1`.
+`CHUNKING_VERSION` selects the strategy at ingestion (`STRATEGIES` in `ingestion/chunking.py`) and names the collection, so `chunking_v2` builds a new collection beside the `chunking_v1` one. `chunking_v2` is the default. Production reads its version from that default, so run **Ingest (prod)** from the branch before merging, otherwise the deployed API looks for a collection that doesn't exist yet. Accepted on 2026-10-28, once the retriever eval ([ADR 0006](0006-evals-with-deepeval-in-stages.md)) showed `chunking_v2` scores at least as well as `chunking_v1`. Over all 89 questions, with `retrieval_k` 5, current documents only and `gpt-6-sol` as judge, two `chunking_v2` runs scored recall 0.856 and 0.836 and precision 0.904 and 0.907; `chunking_v1` scored 0.844 and 0.898. The difference is within the judge's run-to-run variation (2 points of recall between the two identical `chunking_v2` runs), so `chunking_v2` is as good, not measurably better. The runs are in `evals/results/retrieval/`.
 
 The versions were first named `structure_v1` and `structure_v2`. They were renamed before `chunking_v2` reached production, so a collection named `prod-structure_v1-…` holds `chunking_v1` chunks and can be deleted once `prod-chunking_v2-…` is serving.
 

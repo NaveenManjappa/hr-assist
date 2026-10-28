@@ -219,7 +219,7 @@ Before comparing, check each summary's `hyperparameters`:
 
 ### Example: `chunking_v1` against `chunking_v2`
 
-This is the comparison [ADR 0005](adr/0005-split-oversized-sections-at-unnumbered-headings.md) is waiting for: it can be accepted once `chunking_v2` scores at least as well as `chunking_v1`.
+This is the comparison [ADR 0005](adr/0005-split-oversized-sections-at-unnumbered-headings.md) was waiting for. It was accepted on 2026-10-28, after `chunking_v2` scored at least as well as `chunking_v1`; repeat the comparison whenever chunking changes.
 
 ```bash
 # 1. In .env set CHUNKING_VERSION=chunking_v1, then ingest it and run the eval:

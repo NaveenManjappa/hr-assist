@@ -105,4 +105,4 @@ The criteria for choosing a judge, most important first:
 - DeepEval becomes a development dependency, and each eval run costs judge tokens.
 - Eval results live in files in the repo rather than a hosted dashboard, so comparing runs means comparing files.
 - The eval data files 07 and 08 become a maintained asset: a change to them means regenerating the goldens and, if the included questions change, a new golden version.
-- ADR 0005 can move to accepted once a retriever eval shows `chunking_v2` scores at least as well as `chunking_v1`.
+- ADR 0005 was accepted on 2026-10-28, after retriever eval runs showed `chunking_v2` scores at least as well as `chunking_v1`.
