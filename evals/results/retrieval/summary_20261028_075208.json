@@ -1,0 +1,865 @@
+{
+  "run_at": "2026-10-28T07:52:08+00:00",
+  "deepeval_run_file": "test_run_20261028_075318.json",
+  "judge_cost_usd": 1.5851,
+  "hyperparameters": {
+    "chunking_version": "chunking_v1",
+    "chunk_max_tokens": 500,
+    "chunk_overlap_tokens": 60,
+    "embedding_model": "text-embedding-3-small",
+    "collection_name": "development-chunking_v1-text-embedding-3-small",
+    "collection_chunk_count": 405,
+    "retrieval_k": 5,
+    "retrieval_score_threshold": 0.65,
+    "judge_model": "gpt-6-sol",
+    "goldens_file": "goldens_v1.jsonl",
+    "goldens_sha256": "7dbbe91d3ee20378b3e6c17b4ce18e6aa2b7e57e96c328c5cd4c7e9f78f2ed17",
+    "goldens_used": 89
+  },
+  "empty_retrievals": [],
+  "means": {
+    "overall": {
+      "questions": 89,
+      "Contextual Recall": 0.8375,
+      "Contextual Precision": 0.8869
+    },
+    "conditional_eligibility": {
+      "questions": 13,
+      "Contextual Recall": 0.7885,
+      "Contextual Precision": 0.9178
+    },
+    "cross_document": {
+      "questions": 13,
+      "Contextual Recall": 0.6218,
+      "Contextual Precision": 0.8567
+    },
+    "factual_retrieval": {
+      "questions": 14,
+      "Contextual Recall": 0.9286,
+      "Contextual Precision": 0.9237
+    },
+    "multi_hop": {
+      "questions": 13,
+      "Contextual Recall": 0.7013,
+      "Contextual Precision": 0.9059
+    },
+    "numerical_calculation": {
+      "questions": 14,
+      "Contextual Recall": 0.9643,
+      "Contextual Precision": 0.959
+    },
+    "semantic_paraphrase": {
+      "questions": 11,
+      "Contextual Recall": 0.9167,
+      "Contextual Precision": 0.7705
+    },
+    "table_extraction": {
+      "questions": 11,
+      "Contextual Recall": 0.9545,
+      "Contextual Precision": 0.8413
+    }
+  },
+  "questions": [
+    {
+      "question_id": "NDS-EVAL-001",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-002",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.95
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-003",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.95
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-004",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-005",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-006",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-007",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-008",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-009",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8875
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-010",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-011",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-012",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8666666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-013",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.6388888888888888
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-014",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.75,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-015",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8666666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-016",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8041666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-017",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-018",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-019",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.6666666666666666,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-020",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.25
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-021",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-022",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.41666666666666663
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-023",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.6666666666666666,
+        "Contextual Precision": 0.25
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-024",
+      "category": "semantic_paraphrase",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8875
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-025",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-026",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8666666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-027",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.5,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-028",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.95
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-029",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.75,
+        "Contextual Precision": 0.8333333333333333
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-030",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.6666666666666666,
+        "Contextual Precision": 0.7555555555555555
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-031",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.6666666666666666,
+        "Contextual Precision": 0.9166666666666666
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-032",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-033",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-034",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.6666666666666666,
+        "Contextual Precision": 0.8041666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-035",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-036",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8055555555555555
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-037",
+      "category": "conditional_eligibility",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-038",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-039",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.4,
+        "Contextual Precision": 0.6791666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-040",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.75,
+        "Contextual Precision": 0.8666666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-041",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-042",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.5,
+        "Contextual Precision": 0.8041666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-043",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8875
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-044",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.25,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-045",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.8,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-046",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.6666666666666666,
+        "Contextual Precision": 0.5888888888888889
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-047",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.75,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-048",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.3333333333333333,
+        "Contextual Precision": 0.95
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-049",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.6666666666666666,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-050",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8041666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-051",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-052",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.7555555555555555
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-053",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-054",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-055",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-056",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-057",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-058",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-059",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-060",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-061",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.5,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-062",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8666666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-063",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.9166666666666666
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-064",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.5
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-065",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-066",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.95
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-067",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8333333333333333
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-068",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-069",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-070",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.5
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-071",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-072",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.75
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-073",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.8055555555555555
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-074",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-075",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.75,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-076",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.5,
+        "Contextual Precision": 0.7555555555555555
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-077",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.0,
+        "Contextual Precision": 0.7555555555555555
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-078",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-079",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.9166666666666666
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-080",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.0,
+        "Contextual Precision": 0.25
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-081",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.95
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-082",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.3333333333333333,
+        "Contextual Precision": 0.95
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-083",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.95
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-119",
+      "category": "factual_retrieval",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 0.6388888888888888
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-120",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.5,
+        "Contextual Precision": 0.8041666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-122",
+      "category": "table_extraction",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 0.5,
+        "Contextual Precision": 0.8041666666666667
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-123",
+      "category": "cross_document",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-124",
+      "category": "multi_hop",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-125",
+      "category": "numerical_calculation",
+      "retrieved": true,
+      "scores": {
+        "Contextual Recall": 1.0,
+        "Contextual Precision": 1.0
+      }
+    }
+  ]
+}
