@@ -56,6 +56,8 @@ flowchart LR
 
 The [deployment guide](docs/deployment.md) explains each part and why it was chosen.
 
+The [evals guide](docs/evals.md) explains how answer quality is measured, and how to run the evals.
+
 Code layout:
 
 | Path | Contents |
@@ -225,7 +227,7 @@ GitHub runs scheduled workflows only from the default branch, and turns them off
 
 ## Known limitations
 
-- **No evals yet.** The question set and gold answers in [evals/](evals/) haven't been wired into an automated evaluation, so answer quality isn't measured. That is Stage 3.
+- **Only retrieval is evaluated.** The retriever eval ([ADR 0006](docs/adr/0006-evals-with-deepeval-in-stages.md)) scores the chunks returned for each question, but answer quality isn't measured yet. Generation, pipeline and application evals are the next stages.
 - **Short follow-ups retrieve poorly.** Retrieval uses only the latest message. A follow-up such as "and for part-timers?" searches on those words alone, without the earlier question. The last 5 messages do reach the model, but the chunks it needs may not have been retrieved.
 - **No metadata filtering.** Retrieval is pure vector similarity. Superseded Source Documents and Summary Decks compete with current Policy Documents for the top 8 places, and only the prompt decides which one prevails.
 - **No streaming.** The reply appears all at once, after the full answer has been generated.

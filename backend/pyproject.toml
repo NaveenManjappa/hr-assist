@@ -35,6 +35,9 @@ dev = [
     "ruff>=0.17.1",
     "types-pyyaml>=6.0.12.20260906",
 ]
+evals = [
+    "deepeval>=4.3.2",
+]
 ingest = [
     "langchain-pymupdf4llm>=1.28.0",
     "pymupdf4llm>=1.28.0",

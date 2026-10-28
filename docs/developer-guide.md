@@ -338,7 +338,8 @@ Important details:
 | `APP_ENV` | string, required | none | `collection_name` | Prefix of the Qdrant collection, for example `dev` or `prod`. |
 | `OPENAI_API_KEY` | secret, required | none | Chat model, embeddings | |
 | `CHAT_MODEL` | string | `gpt-6-luna` | `OpenAIChatModel` | Any OpenAI chat model with structured output. |
-| `MAX_OUTPUT_TOKENS` | positive integer | `800` | `OpenAIChatModel` | Caps the reply length and the cost. |
+| `MAX_OUTPUT_TOKENS` | positive integer | `5000` | `OpenAIChatModel` | Caps the reply length and the cost. Reasoning tokens count against it. |
+| `REASONING_EFFORT` | `none`, `low`, `medium`, `high`, `xhigh` or `max` | `low` | `OpenAIChatModel` | How much the model reasons before answering. A higher effort needs a higher `MAX_OUTPUT_TOKENS`. |
 | `EMBEDDING_MODEL` | string | `text-embedding-3-small` | Retriever, ingestion, `collection_name` | A change needs a new ingestion. |
 | `CHUNK_MAX_TOKENS` | positive integer | unset (strategy default: 500 for v1 and v2) | CLI strategy choice | Overrides the chunk size limit of the `CHUNKING_VERSION` strategy. Not part of the collection name. |
 | `CHUNK_OVERLAP_TOKENS` | non-negative integer | unset (strategy default: 60 for v1, 100 for v2) | CLI strategy choice | Overrides the overlap. Must be smaller than the size limit. Not part of the collection name. |
@@ -357,6 +358,7 @@ Important details:
 | `RATE_LIMIT_PER_DAY` | positive integer | `100` | `RateLimiter` | Per IP, UTC day. |
 | `RATE_LIMIT_GLOBAL_PER_DAY` | positive integer | `1000` | `RateLimiter` | All clients, UTC day. |
 | `TRUSTED_PROXY_HOPS` | integer ≥ 0 | `1` | `client_ip` | Production uses `2` (see [10.4](#104-rate-limiting)). |
+| `EVAL_JUDGE_MODEL` | string | `gpt-6-sol` | `evals/retrieval/run_eval.py` | The eval's judge model. Not in `Settings`, because the API never uses it. `--judge-model` overrides it. See the [evals guide](evals.md). |
 
 ### 4.3 The collection name
 
@@ -1271,7 +1273,7 @@ CI runs the same commands on each pull request and each push to `main`. CI also 
 
 ## 12. Evaluation assets
 
-Stage 3 of the project brief is evaluation. The data is ready. The automation is not built yet.
+Stage 3 of the project brief is evaluation, built in stages with DeepEval ([ADR 0006](adr/0006-evals-with-deepeval-in-stages.md)). The retriever eval exists; generation, pipeline and application evals don't yet.
 
 | File | Contents |
 | --- | --- |
@@ -1304,6 +1306,14 @@ Two retrieval metrics appear in the baseline sheet:
 > **Simple explanation.** Hit@k asks "did the search find it at all?". Reciprocal rank asks "how near the top was it?".
 >
 > **Analogy.** A web search. Hit@8 asks if the answer is on the first page. Reciprocal rank gives full marks for the first link and half marks for the second link.
+
+The retriever eval scores the 89 answerable questions it can test (`evals/retrieval/goldens_v1.jsonl`, built by `build_goldens.py`) with LLM-judged Contextual Recall and Contextual Precision. Run it by hand from the repo root:
+
+```bash
+uv run --project backend --group evals python evals/retrieval/run_eval.py   # --limit 3 for a smoke test
+```
+
+It uses the app's `Settings` and the collection they name, and writes a `test_run_*.json`, a `summary_*.json` and a readable `report_*.md` to `evals/results/retrieval/`. A full run costs about $1.50 in judge tokens. The [evals guide](evals.md) walks through running it and reading the results.
 
 The gold file has verbatim passages. An automated harness can match each passage against the retrieved chunk text to find the rank of the correct chunk. The `Answerer` takes Protocols, so a harness can call it directly, without HTTP.
 

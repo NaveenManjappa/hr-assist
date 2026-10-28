@@ -25,7 +25,7 @@ The `Retriever` and `ChatModel` Protocols in `answering/answerer.py` are what ma
 Each stage is reviewed before the next begins.
 
 1. **Retriever golden data** (done). `evals/retrieval/build_goldens.py` writes `evals/retrieval/goldens_v1.jsonl`. See [Retriever golden data](#retriever-golden-data).
-2. **Retriever eval, run by hand.** Contextual Recall and Contextual Precision against the dev collection, results written per run. See [Retriever eval](#retriever-eval).
+2. **Retriever eval, run by hand.** `evals/retrieval/run_eval.py` scores Contextual Recall and Contextual Precision against the dev collection and writes results per run. See [Retriever eval](#retriever-eval).
 3. **Generation golden data and eval.** Reuses the supporting passages already in the retriever goldens' `context` field as the fake retriever's output.
 4. **Pipeline golden data and eval.** Adds the questions the retriever level leaves out: Clarification, Abstention and Refusal cases, and the privacy and injection questions.
 5. **Application golden data and eval.** A smaller set sent over HTTP.
@@ -53,17 +53,23 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
 
 ## Retriever eval
 
-- **Metrics.** DeepEval `ContextualRecallMetric` (what share of the gold answer's statements can be attributed to the retrieved chunks) and `ContextualPrecisionMetric` (whether the relevant chunks are ranked above the irrelevant ones). Both are run with `threshold=None`, so they record scores without pass or fail.
-- **What is retrieved.** The real retriever against the dev collection (`development-{chunking_version}-{embedding_model}`), with `retrieval_k` and `retrieval_score_threshold` read from `Settings`, so the eval measures what the app does. `retrieval_context` is each chunk's full text, header lines included, as the model sees it.
-- **No answer is generated.** Both metrics list `actual_output` as required but don't use it in their scores, so it gets a placeholder.
-- **Empty retrievals.** When no chunk passes `retrieval_score_threshold`, the question scores 0 and is counted separately, not dropped.
-- **Every setting is recorded** through `evaluate(hyperparameters=...)`: chunking version, chunk size and overlap, embedding model, collection name and its chunk count, `retrieval_k`, `retrieval_score_threshold`, judge model, golden file name and hash, and git commit.
-- **Results.** Each run writes a timestamped `test_run_*.json` through DeepEval's results folder setting, under `evals/results/retrieval/`.
-- **Telemetry** is turned off with `DEEPEVAL_TELEMETRY_OPT_OUT=1`.
+- **Running it.** From the repo root, `uv run --project backend --group evals python evals/retrieval/run_eval.py`. DeepEval is in its own `evals` dependency group, so CI doesn't install it. `--limit N` runs the first N goldens as a cheap smoke test; the summary records how many were used. A full run costs about $1.50 in judge tokens with `gpt-6-sol`.
+- **Metrics.** DeepEval `ContextualRecallMetric` (what share of the gold answer's statements can be attributed to the retrieved chunks) and `ContextualPrecisionMetric` (whether the relevant chunks are ranked above the irrelevant ones). Only scores are recorded. DeepEval's `evaluate()` refuses metrics without a threshold, so both are given `threshold=0` and every case passes; pass and fail mean nothing here. `eval_mode="llm"` is pinned, so `DEEPEVAL_EVAL_MODE` can't hand the decisions to another model.
+- **What is retrieved.** The real `QdrantRetriever` against the dev collection (`development-{chunking_version}-{embedding_model}`), with `retrieval_k` and `retrieval_score_threshold` read from `Settings`, so the eval measures what the app does. `retrieval_context` is each chunk's full text, header lines included, as the model sees it.
+- **No answer is generated.** Neither metric needs `actual_output`, so it is left unset.
+- **Empty retrievals.** When no chunk passes `retrieval_score_threshold`, the question isn't sent to the judge. It scores 0 in the summary and is listed under `empty_retrievals`, not dropped.
+- **Every setting is recorded** through `evaluate(hyperparameters=...)` and in the summary: chunking version, chunk size and overlap, embedding model, collection name and its chunk count, `retrieval_k`, `retrieval_score_threshold`, judge model, and golden file name, hash and number used. The git commit isn't recorded for now. The collection doesn't record the chunk size and overlap it was built with, so these are what `Settings` gives, which match the collection only if it was ingested with the same `Settings`.
+- **Results.** Each run writes three files under `evals/results/retrieval/`:
+  - DeepEval's timestamped `test_run_*.json`, with every verdict and reason and the full text of every retrieved chunk.
+  - A `summary_*.json` that names that file and holds the judge cost, the settings, mean scores overall and by category, and each question's scores. Compare runs through the summaries.
+  - A `report_*.md` for reading: the same scores, then every question, lowest score first, with its expected answer, the judge's reasons and the start of each retrieved chunk. It renders in VS Code's preview and on GitHub.
+
+  DeepEval's own viewers don't fit. `deepeval inspect` shows only traces, which these runs don't record, and `deepeval view` uploads the run to Confident AI.
+- **Environment.** Telemetry is turned off with `DEEPEVAL_TELEMETRY_OPT_OUT=1`. DeepEval copies the working directory's `.env` into the process environment on import, which would switch on LangSmith tracing for eval retrievals, so `DEEPEVAL_DISABLE_DOTENV=1` is set too; `Settings` reads `.env` itself.
 
 ### Judge model
 
-The judge is **`gpt-6-sol`**, set through `EVAL_JUDGE_MODEL` (with a command-line override), not through the app's `Settings`, because the API never uses it. A dated snapshot ID is used when one exists, so the judge can't change between runs.
+The judge is **`gpt-6-sol`**, set through `EVAL_JUDGE_MODEL` (in the environment or `.env`, with a `--judge-model` override), not through the app's `Settings`, because the API never uses it. A dated snapshot ID is used when one exists, so the judge can't change between runs; DeepEval 4.3.2 lists none for `gpt-6-sol`, so the plain ID is used for now.
 
 The criteria for choosing a judge, most important first:
 

@@ -15,3 +15,7 @@ wheels/
 
 # Firebase CLI cache
 .firebase/
+
+# DeepEval run state
+.deepeval/
+evals/results/**/.test_run.lock
