@@ -27,7 +27,7 @@ Each stage is reviewed before the next begins.
 1. **Retriever golden data** (done). `evals/retrieval/build_goldens.py` writes `evals/retrieval/goldens_v1.jsonl`. See [Retriever golden data](#retriever-golden-data).
 2. **Retriever eval, run by hand.** `evals/retrieval/run_eval.py` scores Contextual Recall and Contextual Precision against the dev collection and writes results per run. See [Retriever eval](#retriever-eval).
 3. **Generation golden data and eval.** `evals/generation/build_goldens.py` writes `evals/generation/goldens_v1.jsonl`. See [Generation golden data](#generation-golden-data).
-4. **Pipeline golden data and eval.** Adds the questions the retriever level leaves out: Clarification, Abstention and Refusal cases, and the privacy and injection questions.
+4. **Pipeline golden data and eval.** `evals/pipeline/build_goldens.py` writes `evals/pipeline/goldens_v1.jsonl`, adding the Clarification, Abstention and Refusal questions to the Answer questions. See [Pipeline golden data](#pipeline-golden-data).
 5. **Application golden data and eval.** A smaller set sent over HTTP.
 6. **CI.** A manually triggered workflow that runs the evals and keeps each run's results.
 
@@ -70,6 +70,40 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
 - **Every setting is recorded**: chat model, reasoning effort, output cap, prompt version, chunking version of the goldens, judge model, and golden file name, hash and number used. `retrieval_k` isn't, because it has no effect. The summary also holds the generator's token totals and each reply.
 - **Results.** The same three files as the retriever eval, under `evals/results/generation/`. The report shows each reply beside the expected answer, because neither metric compares them.
 - **No tracing**, as in the retriever eval.
+
+## Pipeline golden data
+
+- **Which questions.** 109 in all:
+  - **The 89 Answer questions** of the retriever goldens, read from `evals/retrieval/goldens_v1.jsonl`, so the three levels line up question by question.
+  - **20 questions that expect another Response Type:** 7 Clarification (`ambiguous_clarification`), 8 Abstention (`unanswerable_out_of_scope`) and 5 Refusal (`privacy_injection_robustness`: 110, 111, 113, 116, 118).
+- **Left out.**
+  - `versioning_temporal` stays out, because retrieval searches only current documents ([ADR 0007](0007-search-only-current-documents.md)).
+  - Every question citing `NDS-TEST-INJ-010` (112, 114, 115, 117) moves to the application level. The fixture isn't in the Corpus, so the real retriever never returns it.
+- **Nothing retrieved at build time.** The pipeline retrieves live with `retrieval_k` and `retrieval_score_threshold` from `Settings` (5 and 0.65 in `.env`). So the golden holds no `retrieval_context` and doesn't depend on a chunking version.
+- **Shape.**
+  - `input`, `expected_output` (the `gold_answer`, which Contextual Recall needs) and `context`, as in the retriever goldens.
+  - `additional_metadata` adds:
+    - `expected_response_type`: the eval questions file's `expected_behaviour`, as a Response Type.
+    - The As-Of Date, `must_mention` and `must_not_claim`.
+    - `citation_targets` and `unreachable_passages`.
+- **Citation targets.**
+  - **One per supporting passage of an Answer question.** Each is the Document ID with the passage's leading section number ("6.1" from "6.1, Table 6.1") or its slide. The patterns are the same as the generation goldens' section rule.
+  - **Unreachable passages.** A passage whose document isn't current, or whose section names neither a number nor a slide, can't be cited. It is listed under `unreachable_passages` and kept out of the targets. Only `NDS-EVAL-082`'s superseded "Superseded notice" is unreachable.
+  - **Build checks.** The build fails if an Answer question is left with no target. Questions have 1 to 4 targets, most 1 or 2, which fits within `retrieval_k`.
+- **Metrics.**
+  - **Answer Relevancy, Faithfulness and Contextual Recall** (the RAG triad), on Answer questions only.
+    - Faithfulness and Contextual Recall judge against every retrieved chunk, as the model sees it.
+    - `actual_output` has its `[n]` markers removed, as in the generation eval.
+    - A reply that isn't an Answer, an empty retrieval or an `UpstreamError` scores 0 and is listed.
+  - **Citation precision and recall**, with no judge.
+    - A citation hits a target when its `document_id` matches and either its slide matches, or the leading number of its `section` is the target's section or a subsection of it.
+    - Precision is the share of citations that hit a target. Recall is the share of targets hit.
+    - Recall is strict: it counts every target, so citing only one of two documents that hold the same table scores 0.5, as the questions' citation requirements ask for both.
+  - **Citation Faithfulness**, DeepEval's community `CitationFaithfulnessMetric`. It's a judge: pass or fail per Answer, on whether each `[n]` marker points to a source that supports its claim.
+    - It doesn't use the gold, so it complements the precision and recall above.
+    - The Answerer renumbers markers so `[n]` is the n-th citation, so the metric's `retrieval_context` is the cited chunks in citation order, not the retrieved ones.
+  - **Response Type match**, 1 or 0 for every question, with no judge. For the 20 other questions it's their only score. For the 89 Answer questions it's the answer rate.
+  - Judge metrics use `threshold=0` and `eval_mode="llm"`, as in the earlier evals.
 
 ## Retriever eval
 
