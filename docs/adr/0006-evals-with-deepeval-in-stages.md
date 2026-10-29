@@ -93,6 +93,7 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
 - **Metrics.**
   - **Answer Relevancy, Faithfulness and Contextual Recall** (the RAG triad), on Answer questions only.
     - Faithfulness and Contextual Recall judge against every retrieved chunk, as the model sees it.
+    - **Contextual Relevancy** joins them: the share of the retrieved text that is about the question. It needs no gold answer. Contextual Recall can't see noise, so a high `retrieval_k` can raise recall while burying the right section in unrelated text. Contextual Relevancy shows that cost.
     - `actual_output` has its `[n]` markers removed, as in the generation eval.
     - A reply that isn't an Answer, an empty retrieval or an `UpstreamError` scores 0 and is listed.
   - **Citation precision and recall**, with no judge.
@@ -104,6 +105,15 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
     - The Answerer renumbers markers so `[n]` is the n-th citation, so the metric's `retrieval_context` is the cited chunks in citation order, not the retrieved ones.
   - **Response Type match**, 1 or 0 for every question, with no judge. For the 20 other questions it's their only score. For the 89 Answer questions it's the answer rate.
   - Judge metrics use `threshold=0` and `eval_mode="llm"`, as in the earlier evals.
+
+## Pipeline eval
+
+- **Running it.** From the repo root, `uv run --project backend --group evals python evals/pipeline/run_eval.py`, with `--limit N` and `--judge-model` as in the other runners. Smoke runs with `gpt-5.6-luna` cost $0.006 to $0.009 in judge tokens per Answer question, about half of it for Contextual Relevancy. A full run is expected to cost about $0.65.
+- **What answers.** The real `QdrantRetriever` and `OpenAIChatModel`, with every setting from `Settings`. A recording wrapper keeps each question's retrieved chunks, and each citation is matched back to its chunk by Document ID and text.
+- **Two judge runs.** The triad and Contextual Relevancy read the reply with its markers removed, against every retrieved chunk. Citation Faithfulness reads the markers, against the cited chunks in citation order. These need different test cases, so each run makes two `evaluate()` calls and DeepEval writes two `test_run_*.json` files. The summary names both.
+- **Zeros.** An Answer question scores 0 on every answer metric when its reply isn't an Answer (`non_answers`), when no chunk passes the threshold (`empty_retrievals`), or when the model call fails (`generation_errors`). An Answer with no citations scores 0 on Citation Faithfulness, Citation Precision and Citation Recall, without the judge.
+- **Every setting is recorded.** That is everything the retriever eval and the generation eval record, together.
+- **Results.** The same three kinds of file, under `evals/results/pipeline/`. The report has separate score tables for Answer questions and for the other Response Types. Each question lists its gold sections, cited or not, and its retrieved chunks, with the cited ones marked as gold or not.
 
 ## Retriever eval
 

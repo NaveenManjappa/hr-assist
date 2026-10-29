@@ -360,7 +360,7 @@ Important details:
 | `RATE_LIMIT_PER_DAY` | positive integer | `100` | `RateLimiter` | Per IP, UTC day. |
 | `RATE_LIMIT_GLOBAL_PER_DAY` | positive integer | `1000` | `RateLimiter` | All clients, UTC day. |
 | `TRUSTED_PROXY_HOPS` | integer ≥ 0 | `1` | `client_ip` | Production uses `2` (see [10.4](#104-rate-limiting)). |
-| `EVAL_JUDGE_MODEL` | string | `gpt-5.6-luna` | `evals/retrieval/run_eval.py`, `evals/generation/run_eval.py` | The eval's judge model. Not in `Settings`, because the API never uses it. `--judge-model` overrides it. See the [evals guide](evals.md). |
+| `EVAL_JUDGE_MODEL` | string | `gpt-5.6-luna` | `evals/retrieval/run_eval.py`, `evals/generation/run_eval.py`, `evals/pipeline/run_eval.py` | The eval's judge model. Not in `Settings`, because the API never uses it. `--judge-model` overrides it. See the [evals guide](evals.md). |
 
 ### 4.3 The collection name
 
@@ -1277,16 +1277,17 @@ CI runs the same commands on each pull request and each push to `main`. CI also 
 
 ## 12. Evaluation assets
 
-Stage 3 of the project brief is evaluation, built in stages with DeepEval ([ADR 0006](adr/0006-evals-with-deepeval-in-stages.md)). The retriever eval exists; generation, pipeline and application evals don't yet.
+Stage 3 of the project brief is evaluation, built in stages with DeepEval ([ADR 0006](adr/0006-evals-with-deepeval-in-stages.md)). The retriever, generation and pipeline evals exist; the application eval doesn't yet.
 
 | File | Contents |
 | --- | --- |
 | `evals/eval_questions.json` | 125 questions with category, difficulty, expected behaviour, expected answer, source documents and sections, version, As-Of Date, a gold answer, supporting passages, `must_mention`, `must_not_claim`, citation requirements and a rubric. The single source for every golden file |
 | `evals/retrieval/goldens_v1.jsonl` | The retriever goldens, built from it by `evals/retrieval/build_goldens.py` |
 | `evals/generation/goldens_v1.jsonl` | The generation goldens: the same 89 questions with their gold chunks, built by `evals/generation/build_goldens.py` |
+| `evals/pipeline/goldens_v1.jsonl` | The pipeline goldens: the 89 questions plus 20 expecting a Clarification, Abstention or Refusal, with the expected Response Type and the gold sections to cite, built by `evals/pipeline/build_goldens.py` |
 | `evals/baseline_manual_v1.csv` | A sheet for a manual baseline run, with columns for the actual answer, retrieved chunks, rank of the correct chunk, hit@k, reciprocal rank and scores |
 
-To build the golden files, follow the procedure in [Running the evals, section 8](evals.md#8-building-the-golden-files).
+To build the golden files, follow [Building the goldens](evals.md#building-the-goldens) in the evals guide.
 
 Questions by category:
 
@@ -1320,7 +1321,7 @@ The retriever eval scores the 89 answerable questions it can test (`evals/retrie
 uv run --project backend --group evals python evals/retrieval/run_eval.py   # --limit 3 for a smoke test
 ```
 
-It uses the app's `Settings` and the collection they name, and writes a `test_run_*.json`, a `summary_*.json` and a readable `report_*.md` to `evals/results/retrieval/`. A full run costs about $0.20 in judge tokens. The [evals guide](evals.md) walks through running it and reading the results.
+It uses the app's `Settings` and the collection they name, and writes a `test_run_*.json`, a `summary_*.json` and a readable `report_*.md` to `evals/results/retrieval/`. A full run costs about $0.20 in judge tokens. The generation and pipeline evals (`evals/generation/run_eval.py`, `evals/pipeline/run_eval.py`) run the same way. The [evals guide](evals.md) walks through running them and reading the results.
 
 The gold file has verbatim passages. An automated harness can match each passage against the retrieved chunk text to find the rank of the correct chunk. The `Answerer` takes Protocols, so a harness can call it directly, without HTTP.
 
@@ -1418,7 +1419,7 @@ The README lists the main product limits. This section repeats them and adds gap
 
 | Limit | Effect | Possible fix |
 | --- | --- | --- |
-| **Only retrieval is evaluated.** | The retriever eval ([evals guide](evals.md)) scores the chunks, but answer quality isn't measured. | Build the generation, pipeline and application evals (ADR 0006). |
+| **The live API isn't evaluated.** | The retriever, generation and pipeline evals ([evals guide](evals.md)) score search and answers, but nothing evaluates the deployed API, and injection resistance isn't tested. | Build the application eval (ADR 0006). |
 | **Retrieval keeps only one question of context.** | A follow-up about something asked two or more questions earlier searches without it. | Add a query-rewrite step that uses the history. |
 | **Only current documents are searched, and no reranker.** | Questions about past dates can't find superseded policy. Deck chunks still take places. | Reserved places for superseded documents or an Applicable Date step (ADR 0007), and a reranker or boost for Policy Documents. |
 | **No hybrid (keyword) search.** | Exact terms, such as a form name or a code, can rank low. | Add sparse vectors (BM25) in Qdrant. |
@@ -1561,7 +1562,7 @@ The answering code depends on Protocols. Tests pass fakes through `create_app`. 
 Only retrieval is evaluated, so answer quality is not measured yet. In retrieval, scores for broad questions are close together, so a small change in wording reorders the chunks, and follow-ups keep only one question of context. See [section 15](#15-known-limits-and-gaps).
 
 **What is the next work?**
-Record retriever eval baselines for `chunking_v1` and `chunking_v2`, then build the generation and pipeline evals ([evals guide](evals.md)). Then, guided by the results: query rewriting, a reranker or a boost for current Policy Documents, hybrid search, and re-indexing through a Qdrant alias with no downtime.
+Record a full pipeline eval run, then build the application eval ([evals guide](evals.md)). Then, guided by the results: query rewriting, a reranker or a boost for current Policy Documents, hybrid search, and re-indexing through a Qdrant alias with no downtime.
 
 ---
 
