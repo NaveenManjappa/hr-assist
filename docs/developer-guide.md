@@ -956,7 +956,7 @@ The rate limiter runs **after** FastAPI validates the body. So an invalid reques
 | `RETRIEVAL_K` (setting) | 3 | `settings.py` | Chunks sent to the model | More chunks give better recall but more cost and more noise. With `chunking_v2`, 3 chunks are usually under 1,500 input tokens, up to about 2,700 when they hold long tables. |
 | `RETRIEVAL_SCORE_THRESHOLD` (setting) | 0.65 | `settings.py` | Lowest relevance a chunk needs to reach the model | Higher stops more off-topic questions before the model call, but can drop the only chunk for a vaguely worded HR question. On `chunking_v2`, off-topic probes scored at most about 0.60 and in-scope eval questions at least about 0.70. Tune it against the evals. |
 | `HISTORY_TURNS` (setting) | 5 | `settings.py` | Messages of history in the prompt | More history gives better follow-ups but more cost. |
-| `PROMPT_VERSION` | `v6` | `prompt.py:8` | Written to each chat log line | Lets you compare logs before and after a prompt change. |
+| `PROMPT_VERSION` | `v7` | `prompt.py:8` | Written to each chat log line | Lets you compare logs before and after a prompt change. |
 
 ### 9.3 Retrieval: `QdrantRetriever`
 

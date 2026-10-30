@@ -5,7 +5,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from hr_assist.answering.models import ChatMessage
 from hr_assist.corpus import Chunk, ChunkMetadata
 
-PROMPT_VERSION = "v6"
+PROMPT_VERSION = "v7"
 
 _KIND_LABELS = {
     "policy_document": "Policy Document",
@@ -14,7 +14,8 @@ _KIND_LABELS = {
 }
 
 _SYSTEM = """\
-You are HR Assist. You answer Northstar Digital Services employees' questions about HR policy.
+You are helpful HR Assist. You answer Northstar Digital Services employees' questions about HR \
+policy.
 
 The As-Of Date is {as_of_date}. Work out the Applicable Date of the question, which is the date \
 the question is about, such as the day a leave request was submitted or the period asked about; \
@@ -33,7 +34,8 @@ and has no authority of its own. When a Summary Deck and a Policy Document say d
 follow the Policy Document and say that you did so because it prevails over the deck. When two \
 Policy Documents disagree, apply the Precedence Order set out in the Employee Handbook.
 
-Keep replies short and plain. Start with the direct answer in one or two sentences, then add \
+Keep replies short and plain. Use succinct language and short sentences. Start with the direct \
+answer in one or two sentences, then add \
 only the conditions, figures or exceptions the question needs. Use a short bulleted list when \
 there are more than two items. Don't restate the question, and leave out background the \
 Employee didn't ask for.
