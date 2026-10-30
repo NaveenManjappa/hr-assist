@@ -282,11 +282,18 @@ async def ask_all(
     return replies[: len(goldens)], replies[len(goldens) :]
 
 
+def case_name(golden: Golden | ConversationalGolden) -> str:
+    """The name a golden's results are kept under. A follow-up conversation shares its
+    Clarification question's ID, so it gets a suffix, or one would overwrite the other."""
+    question_id = golden.additional_metadata["question_id"]
+    return question_id if isinstance(golden, Golden) else f"{question_id} follow-up"
+
+
 def question_cases(goldens: list[Golden], replies: list[Reply]) -> list[LLMTestCase]:
     """Every reply the API gave, whatever its Response Type, markers removed."""
     return [
         LLMTestCase(
-            name=golden.additional_metadata["question_id"],
+            name=case_name(golden),
             input=golden.input,
             actual_output=reply.text,
             expected_output=golden.expected_output,
@@ -303,7 +310,7 @@ def conversation_cases(
     """Each conversation with the API's reply as its last turn, markers removed."""
     return [
         ConversationalTestCase(
-            name=conversation.additional_metadata["question_id"],
+            name=case_name(conversation),
             turns=[
                 *(Turn(role=t.role, content=t.content) for t in conversation.turns),
                 Turn(role="assistant", content=reply.text),
@@ -371,13 +378,14 @@ def rows_for(
     rows = []
     for golden, reply in zip(goldens, replies, strict=True):
         meta = golden.additional_metadata
-        question_id = meta["question_id"]
+        name = case_name(golden)
         response_type = reply.response.response_type if reply.response else None
-        scores = dict.fromkeys(JUDGED, 0.0) | judged.scores.get(question_id, {})
+        scores = dict.fromkeys(JUDGED, 0.0) | judged.scores.get(name, {})
         scores[RESPONSE_TYPE_MATCH] = float(response_type == meta["expected_response_type"])
         rows.append(
             {
-                "question_id": question_id,
+                "name": name,
+                "question_id": meta["question_id"],
                 "kind": kind,
                 "group": meta.get("selection_group", "follow_up"),
                 "category": meta["category"],
@@ -452,17 +460,17 @@ def write_report(
         "",
     ]
     for row in sorted(summary["questions"], key=lambda r: min(r["scores"].values())):
-        question_id = row["question_id"]
+        name = row["name"]
         scores = " · ".join(f"{n} {s:.2f}" for n, s in row["scores"].items())
         lines += [
-            f"<details><summary><b>{question_id}</b> · {row['group']} · "
+            f"<details><summary><b>{name}</b> · {row['group']} · "
             f"{row['response_type'] or 'error'} (expected {row['expected_response_type']}) · "
             f"{scores}</summary>",
             "",
         ]
-        for turn in asked[question_id]:
+        for turn in asked[name]:
             lines += [f"**{turn['role'].capitalize()}.** {turn['content']}", ""]
-        lines += [f"**Expected.** {expected[question_id]}", ""]
+        lines += [f"**Expected.** {expected[name]}", ""]
         if row["error"]:
             lines += [f"**Error ({row['status']}).** {row['error']}", ""]
         else:
@@ -474,8 +482,8 @@ def write_report(
             ]
             if row["citations"]:
                 lines += [f"**Citations.** {'; '.join(row['citations'])}", ""]
-        for name, reason in reasons.get(question_id, {}).items():
-            lines += [f"**{name} {row['scores'][name]:.2f}.** {reason}", ""]
+        for metric, reason in reasons.get(name, {}).items():
+            lines += [f"**{metric} {row['scores'][metric]:.2f}.** {reason}", ""]
         lines += ["</details>", ""]
     lines.append(
         "The judge's full verdicts are in "
@@ -614,7 +622,7 @@ def main() -> None:
         for group in groups
         if any(r["group"] == group for r in rows)
     }
-    errors = [r["question_id"] for r in rows if r["error"]]
+    errors = [r["name"] for r in rows if r["error"]]
 
     summary_path = RESULTS / f"summary_{started:%Y%m%d_%H%M%S}.json"
     summary = {
@@ -627,16 +635,11 @@ def main() -> None:
         "questions": rows,
     }
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
-    expected = {g.additional_metadata["question_id"]: g.expected_output for g in goldens} | {
-        c.additional_metadata["question_id"]: c.expected_outcome for c in conversations
+    expected = {case_name(g): g.expected_output for g in goldens} | {
+        case_name(c): c.expected_outcome for c in conversations
     }
-    asked = {
-        g.additional_metadata["question_id"]: [{"role": "user", "content": g.input}]
-        for g in goldens
-    } | {
-        c.additional_metadata["question_id"]: [
-            {"role": t.role, "content": t.content} for t in c.turns
-        ]
+    asked = {case_name(g): [{"role": "user", "content": g.input}] for g in goldens} | {
+        case_name(c): [{"role": t.role, "content": t.content} for t in c.turns]
         for c in conversations
     }
     report_path = RESULTS / f"report_{started:%Y%m%d_%H%M%S}.md"
