@@ -1,0 +1,76 @@
+[
+  {
+    "question_id": "NDS-EVAL-095",
+    "missing_detail": "how many days, which dates, when the request is submitted, and probation",
+    "follow_up": "5 days, Monday 16 to Friday 20 November 2026. I'm submitting the request today, and I've passed probation.",
+    "as_of_date": "2026-10-13",
+    "expected_outcome": "Yes, you have given enough notice. Leave of more than 1 and up to 5 working days needs 10 working days' notice, approved by your line manager. Submitting on Tuesday 13 October for leave starting Monday 16 November gives 23 working days' notice, counting neither the submission date nor the first day of leave. The leave still has to be approved in PeopleHub before you take it, and if your team publishes a critical delivery period covering those dates, Head of Department approval is also needed.",
+    "sources": [
+      {"document_id": "NDS-HR-HB-001", "section": "6.6, Table 6.6"},
+      {"document_id": "NDS-HR-HB-001", "section": "6.7"}
+    ]
+  },
+  {
+    "question_id": "NDS-EVAL-096",
+    "missing_detail": "the type of absence and length of service",
+    "follow_up": "It's sickness. I've worked here for 3 years and passed probation long ago.",
+    "as_of_date": "2026-10-13",
+    "expected_outcome": "Yes. With 2 years' or more but less than 5 years' continuous service, company sick pay is 8 weeks at full pay, then 8 weeks at half pay, in any rolling 12-month period. Sick pay already paid in the previous 12 months is deducted from that entitlement. It includes Statutory Sick Pay rather than being paid on top of it, and it depends on following the sickness reporting procedure and providing the required evidence.",
+    "sources": [
+      {"document_id": "NDS-HR-HB-001", "section": "7.5, Table 7.5"}
+    ]
+  },
+  {
+    "question_id": "NDS-EVAL-097",
+    "missing_detail": "the role designation and where the employee would work from",
+    "follow_up": "I'm in a hybrid role, and I'd work from my home in Manchester.",
+    "as_of_date": "2026-10-13",
+    "expected_outcome": "You can ask to become remote-contracted. Changing your contractual place of work to your home is made as a statutory flexible-working request (or as part of a role change), and it needs approval from your Head of Department and People Operations. Your home is in the UK, so it is eligible. Request it normally at least 2 months before the change; if approved, it is recorded in a contract variation letter, and your salary doesn't change.",
+    "sources": [
+      {"document_id": "NDS-HR-HFW-005", "section": "6"},
+      {"document_id": "NDS-HR-HFW-005", "section": "2, Table 2.1"}
+    ]
+  },
+  {
+    "question_id": "NDS-EVAL-098",
+    "missing_detail": "what the expense is, the amount, date, purpose and receipt",
+    "follow_up": "A £35 taxi on 6 October 2026 from the station to a customer site, because I was carrying demo hardware. I have the itemised receipt.",
+    "as_of_date": "2026-10-13",
+    "expected_outcome": "Yes. A taxi is reimbursable up to £50 per journey when you are carrying heavy or valuable equipment, so £35 is within the limit. Attach the itemised receipt and submit the claim within 30 calendar days of 6 October 2026, that is by 5 November 2026.",
+    "sources": [
+      {"document_id": "NDS-FIN-EXP-003", "section": "4.6"},
+      {"document_id": "NDS-FIN-EXP-003", "section": "5"},
+      {"document_id": "NDS-FIN-EXP-003", "section": "6"}
+    ]
+  },
+  {
+    "question_id": "NDS-EVAL-099",
+    "missing_detail": "which kind of parental leave, employee status and the child's age",
+    "follow_up": "I mean unpaid parental leave. I'm an employee, and my daughter is 4.",
+    "as_of_date": "2026-10-13",
+    "expected_outcome": "Yes. Unpaid parental leave has been a day-one right since 6 April 2026. With parental responsibility, you can take up to 18 weeks for your daughter before her 18th birthday, at most 4 weeks in any year, in whole weeks, giving 21 days' notice of the start and end dates. Northstar can postpone it by up to 6 months if the business would be unduly disrupted.",
+    "sources": [
+      {"document_id": "NDS-HR-HB-001", "section": "8.5"}
+    ]
+  },
+  {
+    "question_id": "NDS-EVAL-100",
+    "missing_detail": "whether it is notice of resignation or of a leave request, and the grade",
+    "follow_up": "I mean resigning. I've passed probation, and I'm grade G4.",
+    "as_of_date": "2026-10-13",
+    "expected_outcome": "You need to give 2 months' notice: that is the contractual notice for grades G4 and G5 after probation. Your individual employment contract prevails if it says something different.",
+    "sources": [
+      {"document_id": "NDS-HR-HB-001", "section": "22.4, Table 22.4"}
+    ]
+  },
+  {
+    "question_id": "NDS-EVAL-101",
+    "missing_detail": "the purpose of the trip and the destination",
+    "follow_up": "It's a holiday in Spain, and I'd like to work for 3 days while I'm there. I've passed probation.",
+    "as_of_date": "2026-10-13",
+    "expected_outcome": "Working while abroad needs an approved Work From Abroad request. Submit it in PeopleHub at least 4 weeks before you travel; it needs approval from your line manager, People Operations and IT Security. The 3 days count towards the limit of 10 working days in any rolling 12 months. You must be available for UK core hours (10:00 to 16:00 UK time), and you must not access Restricted information without written CISO approval.",
+    "sources": [
+      {"document_id": "NDS-HR-HFW-005", "section": "7.1, Table 7.1"}
+    ]
+  }
+]

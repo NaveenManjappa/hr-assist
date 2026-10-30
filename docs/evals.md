@@ -15,11 +15,12 @@ Each eval tests one level of the system. Faking a part of the system tells you w
 | **Retriever** | Search only | Retriever, index | No answer is generated | 89 | ~$0.20 |
 | **Generation** | Answers, given the right evidence | Answerer, chat model | Retriever returns the gold chunks | 89 | ~$0.20 |
 | **Pipeline** | Search and answers together, as an Employee gets them | Retriever, index, Answerer, chat model | Nothing | 109 | ~$0.65 (estimated from smoke runs) |
-| Application | The live API over HTTP | Everything | Nothing | Not built yet | |
+| Application | The live API over HTTP | Everything | Nothing | 45, plus 7 conversations (goldens built, runner not yet) | |
 
 - **The 89 questions** are the ones that should get a normal Answer. All three evals use the same 89, so a question can be followed level by level.
 - **The pipeline adds 20 more:** 7 that should get a Clarification, 8 an Abstention and 5 a Refusal.
-- **Left out everywhere:** version-and-date questions, which can't be answered while retrieval searches only current documents ([ADR 0007](adr/0007-search-only-current-documents.md)), and questions about an injected test document that isn't in the index.
+- **Left out everywhere:** version-and-date questions, which can't be answered while retrieval searches only current documents ([ADR 0007](adr/0007-search-only-current-documents.md)).
+- **Questions about an injected test document** that isn't in the index are left out of the first three evals. The application eval sends them, with expected answers rewritten so they don't name that document.
 - **Evals run by hand, never in CI.** They cost money and their scores vary a little between runs.
 
 ## Metrics
@@ -180,8 +181,14 @@ A **golden** is one test question with its correct answer and supporting evidenc
 | `evals/retrieval/goldens_v1.jsonl` | `python evals/retrieval/build_goldens.py` | Nothing: the question list itself | The questions change |
 | `evals/generation/goldens_v1.jsonl` | `uv run --project backend python evals/generation/build_goldens.py` | The gold chunks, rebuilt from `data/` as ingestion does (~25 seconds, free) | The questions, ingestion or chunking change |
 | `evals/pipeline/goldens_v1.jsonl` | `uv run --project backend python evals/pipeline/build_goldens.py` | The expected Response Type and the gold sections to cite | The questions or the manifest change |
+| `evals/application/goldens_v1.jsonl` and `conversations_v1.jsonl` | `uv run --project backend python evals/application/build_goldens.py` | A 45-question sample of the pipeline goldens, plus 7 Clarification follow-up conversations | The pipeline goldens or either hand-written file change |
 
-- **Build the retriever goldens first.** The other two scripts read their question list from them.
+- **Build the retriever goldens first.** The generation and pipeline scripts read their question list from them, and the application script reads the pipeline goldens.
+- **The application goldens have two hand-written source files** in `evals/application/`:
+  - `expected_output_overrides.json`: expected outputs for the 4 questions about an injected memo, whose gold answers name a test document the app has never seen.
+  - `clarification_follow_ups.json`: the Employee's reply to each Clarification and the expected Answer.
+
+  Edit these, never the goldens, and rebuild.
 - **Read each script's output.** It prints counts, plus any passage that has no chunk or can't be cited (today only `NDS-EVAL-082`'s superseded "Superseded notice").
 - **Commit each `.jsonl` file with its pretty-printed `.json` copy.** The evals load only the `.jsonl` file, and the copy is for reading. If the questions didn't change, the retriever goldens must not change either.
 - **The scripts stop with an error** on duplicate question IDs, unknown Document IDs, a missing gold answer or passages, or a section sign in the source file. Write "section 6.1".

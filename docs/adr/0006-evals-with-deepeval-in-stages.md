@@ -28,7 +28,7 @@ Each stage is reviewed before the next begins.
 2. **Retriever eval, run by hand.** `evals/retrieval/run_eval.py` scores Contextual Recall and Contextual Precision against the dev collection and writes results per run. See [Retriever eval](#retriever-eval).
 3. **Generation golden data and eval.** `evals/generation/build_goldens.py` writes `evals/generation/goldens_v1.jsonl`. See [Generation golden data](#generation-golden-data).
 4. **Pipeline golden data and eval.** `evals/pipeline/build_goldens.py` writes `evals/pipeline/goldens_v1.jsonl`, adding the Clarification, Abstention and Refusal questions to the Answer questions. See [Pipeline golden data](#pipeline-golden-data).
-5. **Application golden data and eval.** A smaller set sent over HTTP.
+5. **Application golden data and eval.** `evals/application/build_goldens.py` writes `evals/application/goldens_v1.jsonl`, 45 questions sent over HTTP, and `conversations_v1.jsonl`, 7 Clarification follow-ups. See [Application golden data](#application-golden-data).
 6. **CI.** A manually triggered workflow that runs the evals and keeps each run's results.
 
 Metrics, thresholds and data for stages 3 to 5 are decided when each stage starts, and recorded by updating this ADR.
@@ -114,6 +114,47 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
 - **Zeros.** An Answer question scores 0 on every answer metric when its reply isn't an Answer (`non_answers`), when no chunk passes the threshold (`empty_retrievals`), or when the model call fails (`generation_errors`). An Answer with no citations scores 0 on Citation Faithfulness, Citation Precision and Citation Recall, without the judge.
 - **Every setting is recorded.** That is everything the retriever eval and the generation eval record, together.
 - **Results.** The same three kinds of file, under `evals/results/pipeline/`. The report has separate score tables for Answer questions and for the other Response Types. Each question lists its gold sections, cited or not, and its retrieved chunks, with the cited ones marked as gold or not.
+
+## Application golden data
+
+- **What it's for.** The application eval sends each question to `POST /api/chat` and judges the reply with three DeepEval **G-Eval** metrics: **Correctness** and **Completeness**, which compare the reply with the expected output, and **Style**, which needs no reference. Correctness and Completeness need a trustworthy expected output for every golden, including the Clarification, Abstention and Refusal ones.
+- **A sample, not every question.** Breadth is the pipeline level's job. 45 questions keep each question at about 2% of the score, take about 5 minutes at the deployed API's 10 chats a minute, and fit within its 100 a day per IP with room for a re-run.
+- **Which questions.** Read from `evals/pipeline/goldens_v1.jsonl`, so the levels line up question by question, by a fixed rule in the script:
+  - **21 Answer questions**: 3 per category, hardest first, then by question ID. `factual_retrieval` is all easy, so it falls back to ID order.
+  - **All 20 other questions**: 7 Clarification, 8 Abstention, 5 Refusal.
+  - **The 4 injected-memo questions** (112, 114, 115, 117), which the pipeline left out.
+
+  The build fails if a group's size changes.
+- **Injected-memo questions get rewritten expected outputs.**
+  - `NDS-TEST-INJ-010` isn't in the Corpus, so over HTTP the injected claim reaches the model only as the Employee's premise ("A Finance note says…").
+  - Their gold answers name the fixture ("Sample D of the test fixture"), which the app can't know, so Correctness and Completeness would mark down a correct reply.
+  - `evals/application/expected_output_overrides.json` gives each one an expected output that keeps the rejection of the claim and the real policy, with the reason, which is stored in the golden.
+  - The build fails if an override mentions the fixture, or if the overrides aren't exactly the questions citing it.
+  - Citation targets leave the fixture out.
+- **Clarification follow-ups.** Only the HTTP level sends a conversation, so each Clarification question also becomes a DeepEval `ConversationalGolden`, judged with `ConversationalGEval`.
+  - `turns`:
+    1. The question.
+    2. The question's short `expected_answer`, as a frozen Clarification.
+    3. The Employee's reply supplying the missing detail.
+  - `expected_outcome` is the gold Answer to the clarified question.
+  - The replies and answers are hand-written from the Corpus in `evals/application/clarification_follow_ups.json`, with their sources, which become citation targets.
+  - The Clarification is frozen, not the app's own. A live one might ask about something else or answer at once, and then the scripted reply wouldn't fit. Freezing it gives every run the same input, and it tests what is new here: the model reading the conversation, and retrieval using the last two questions.
+- **Shape.**
+  - The single-turn goldens are shaped like the pipeline goldens. `additional_metadata` adds:
+    - `selection_group`.
+    - `expected_output_override_reason`, where there is one.
+    - The question's weighted `evaluation_rubric`, for people reading results. It isn't sent to the judge: the G-Eval steps are the same for every question, so scores stay comparable, and the rubric's citation weighting is covered at the pipeline level.
+  - Conversations are a separate file, because DeepEval judges them as a different kind of test case.
+- **Checks.** On top of the pipeline builder's checks:
+  - Every golden has an expected output.
+  - Every Answer golden has a citation target.
+  - Every follow-up's sources are current and citable.
+- **Reuse.** `citation_target` and the Response Types come from `evals/pipeline/build_goldens.py`, loaded by path, so the two levels can't drift apart.
+- **For the eval stage.**
+  - Each G-Eval metric gets fixed `evaluation_steps` and a `rubric` with score bands, rather than a `criteria` the judge turns into new steps on every run.
+  - This matters more because `gpt-5.6-luna` has no logprobs, so G-Eval reports the judge's integer score unsmoothed.
+  - Run the three metrics twice on about 10 questions. If scores often move by more than one band, compare a judge with logprobs (`gpt-4.1-mini`, or `gpt-5.4-2026-03-05`) on the hand-labelled sample.
+- **Deferred: operational metrics.** Latency, generator cost per question (from the server's `token_usage` log, matched by request ID) and reliability (HTTP status mix, error rate, replies that parse as `ChatResponse`) will be revisited. They need nothing from the goldens.
 
 ## Retriever eval
 
