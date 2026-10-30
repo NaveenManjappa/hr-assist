@@ -664,6 +664,7 @@ dev = [
 ]
 evals = [
     { name = "deepeval" },
+    { name = "httpx" },
 ]
 ingest = [
     { name = "langchain-pymupdf4llm" },
@@ -694,7 +695,10 @@ dev = [
     { name = "ruff", specifier = ">=0.17.1" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20260906" },
 ]
-evals = [{ name = "deepeval", specifier = ">=4.3.2" }]
+evals = [
+    { name = "deepeval", specifier = ">=4.3.2" },
+    { name = "httpx", specifier = ">=0.28.1" },
+]
 ingest = [
     { name = "langchain-pymupdf4llm", specifier = ">=1.28.0" },
     { name = "pymupdf4llm", specifier = ">=1.28.0" },

@@ -15,7 +15,7 @@ Each eval tests one level of the system. Faking a part of the system tells you w
 | **Retriever** | Search only | Retriever, index | No answer is generated | 89 | ~$0.20 |
 | **Generation** | Answers, given the right evidence | Answerer, chat model | Retriever returns the gold chunks | 89 | ~$0.20 |
 | **Pipeline** | Search and answers together, as an Employee gets them | Retriever, index, Answerer, chat model | Nothing | 109 | ~$0.65 (estimated from smoke runs) |
-| Application | The live API over HTTP | Everything | Nothing | 45, plus 7 conversations (goldens built, runner not yet) | |
+| **Application** | The running API over HTTP, judged against the expected answers | The API and everything behind it | Nothing | 45, plus 7 conversations | ~$0.06 (estimated from smoke runs) |
 
 - **The 89 questions** are the ones that should get a normal Answer. All three evals use the same 89, so a question can be followed level by level.
 - **The pipeline adds 20 more:** 7 that should get a Clarification, 8 an Abstention and 5 a Refusal.
@@ -35,14 +35,17 @@ Each eval tests one level of the system. Faking a part of the system tells you w
 | **Citation Faithfulness** | Pipeline | Does each `[n]` marker point to a source that supports its claim? Pass (1) or fail (0) per reply | Yes |
 | **Citation Precision** | Pipeline | What share of the cited sources are gold sections? | No |
 | **Citation Recall** | Pipeline | What share of the gold sections were cited? Citing one of two required sources scores 0.5 | No |
-| **Response Type Match** | Pipeline | Was the reply the expected kind: Answer, Clarification, Abstention or Refusal? | No |
+| **Response Type Match** | Pipeline, application | Was the reply the expected kind: Answer, Clarification, Abstention or Refusal? | No |
+| **Correctness** | Application | Does anything in the reply contradict the expected answer? Missing points don't count here | Yes (G-Eval) |
+| **Completeness** | Application | Does the reply cover every key point of the expected answer? Extra points don't count here | Yes (G-Eval) |
+| **Style** | Application | Does the reply follow the prompt's style rules: direct answer first, short and plain, lists for more than two items? | Yes (G-Eval) |
 
 **An example.** Take the question "How many days of annual leave does a new full-time employee get?" (correct answer: 27 days plus 8 bank holidays).
 - **Recall** is high if the leave table is among the retrieved chunks.
 - **Precision** is high if that table is chunk 1 rather than chunk 5.
 - **Citation Recall** is 1 only if the reply cites both documents that hold the table.
 
-None of the judged metrics compares the reply with the correct answer. A reply can be faithful and relevant but incomplete. The reports show the expected answer next to each reply, so you can compare them yourself.
+Up to the pipeline, none of the judged metrics compares the reply with the correct answer: a reply can be faithful and relevant but incomplete. The reports show the expected answer next to each reply, so you can compare them yourself. The application eval's Correctness and Completeness do compare them.
 
 ## Setup
 
@@ -65,6 +68,14 @@ Run every command from the **repo root**, not from `backend/`.
 | Retriever | `uv run --project backend --group evals python evals/retrieval/run_eval.py` |
 | Generation | `uv run --project backend --group evals python evals/generation/run_eval.py` |
 | Pipeline | `uv run --project backend --group evals python evals/pipeline/run_eval.py` |
+| Application | `uv run --project backend --group evals python evals/application/run_eval.py` |
+
+**The application eval needs the API running.**
+- **Start it** as in the [README](../README.md): `uv run uvicorn hr_assist.api.app:create_app --factory` from `backend/`. Restart it after any code or `.env` change.
+- **The target.** The runner tests `http://localhost:8000` unless you pass `--base-url`.
+- **Pace and quota.** It sends at most `RATE_LIMIT_PER_MINUTE` chats a minute (20), so a full run takes about 3 minutes. It uses 52 of the 100 chats an IP may send per day.
+- **Recorded settings.** The API doesn't report its settings, so the summary records the ones in your `.env`. They describe the server only if it runs the same `.env` and code.
+- **Smoke test.** `--limit 2` runs 2 questions and 2 conversations.
 
 The steps are the same for each eval:
 
@@ -84,7 +95,7 @@ Each run writes these files to `evals/results/<eval>/`. All the names include th
 | --- | --- | --- |
 | `report_*.md` | The settings, the score tables, then every question, lowest score first: the expected answer, the reply, the judge's reasons, the chunks and citations | **Start here** |
 | `summary_*.json` | Every setting used, the judge cost, mean scores overall and by category, and each question's scores | Compare runs |
-| `test_run_*.json` | DeepEval's full record: every verdict, and the full text of every chunk. The pipeline writes two of these, one for the triad and Contextual Relevancy, one for Citation Faithfulness | Read a chunk's full text |
+| `test_run_*.json` | DeepEval's full record: every verdict, and the full text of every chunk. The pipeline writes two of these, one for the triad and Contextual Relevancy, one for Citation Faithfulness; the application eval writes one for the questions and one for the conversations | Read a chunk's full text |
 
 To read a report in VS Code, open it and press **Cmd+Shift+V** (Ctrl+Shift+V on Windows and Linux). GitHub shows it formatted too. Click a question to expand it.
 
@@ -102,6 +113,7 @@ Open the report: the problems are at the top. A low score usually has one of the
 | Low Faithfulness with good recall | The model said more than its sources | Prompt, chat model |
 | Low Citation Recall with good recall | The model had the source but didn't cite it | Prompt |
 | A wrong Response Type | The model clarified, abstained or refused when it shouldn't have, or the other way round | Prompt rules for each Response Type |
+| Low Correctness that names a true extra detail | The application judge sees only the expected answer, not the sources, so it can't verify details beyond it | Check the detail against the policy; Faithfulness at the pipeline level covers grounding |
 | A reason that doesn't fit the reply | The judge got it wrong. It happens. Note it: the judge is meant to be checked against a hand-labelled sample | |
 
 ### Questions that score 0 without the judge
@@ -113,6 +125,7 @@ The summary lists these questions separately. They still count in the means.
 | `empty_retrievals` | No chunk passed `RETRIEVAL_SCORE_THRESHOLD`, so the app abstained. A long list means the threshold may be too strict |
 | `non_answers` | A question that should get an Answer got a Clarification, an Abstention or a Refusal. It isn't judged, because Faithfulness would rate a reply with no claims highly |
 | `generation_errors` | The chat model couldn't be reached, or its reply couldn't be read |
+| `request_errors` | Application eval only: the API returned an error, or a reply that doesn't match `ChatResponse`. The report shows the status and body |
 
 ### Don't over-read small differences
 

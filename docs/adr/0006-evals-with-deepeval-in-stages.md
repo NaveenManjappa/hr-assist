@@ -28,7 +28,7 @@ Each stage is reviewed before the next begins.
 2. **Retriever eval, run by hand.** `evals/retrieval/run_eval.py` scores Contextual Recall and Contextual Precision against the dev collection and writes results per run. See [Retriever eval](#retriever-eval).
 3. **Generation golden data and eval.** `evals/generation/build_goldens.py` writes `evals/generation/goldens_v1.jsonl`. See [Generation golden data](#generation-golden-data).
 4. **Pipeline golden data and eval.** `evals/pipeline/build_goldens.py` writes `evals/pipeline/goldens_v1.jsonl`, adding the Clarification, Abstention and Refusal questions to the Answer questions. See [Pipeline golden data](#pipeline-golden-data).
-5. **Application golden data and eval.** `evals/application/build_goldens.py` writes `evals/application/goldens_v1.jsonl`, 45 questions sent over HTTP, and `conversations_v1.jsonl`, 7 Clarification follow-ups. See [Application golden data](#application-golden-data).
+5. **Application golden data and eval.** `evals/application/build_goldens.py` writes `evals/application/goldens_v1.jsonl`, 45 questions, and `conversations_v1.jsonl`, 7 Clarification follow-ups. `evals/application/run_eval.py` sends them to the running API and scores Correctness, Completeness and Style with G-Eval. See [Application golden data](#application-golden-data) and [Application eval](#application-eval).
 6. **CI.** A manually triggered workflow that runs the evals and keeps each run's results.
 
 Metrics, thresholds and data for stages 3 to 5 are decided when each stage starts, and recorded by updating this ADR.
@@ -118,7 +118,7 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
 ## Application golden data
 
 - **What it's for.** The application eval sends each question to `POST /api/chat` and judges the reply with three DeepEval **G-Eval** metrics: **Correctness** and **Completeness**, which compare the reply with the expected output, and **Style**, which needs no reference. Correctness and Completeness need a trustworthy expected output for every golden, including the Clarification, Abstention and Refusal ones.
-- **A sample, not every question.** Breadth is the pipeline level's job. 45 questions keep each question at about 2% of the score, take about 5 minutes at the deployed API's 10 chats a minute, and fit within its 100 a day per IP with room for a re-run.
+- **A sample, not every question.** Breadth is the pipeline level's job. 45 questions keep each question at about 2% of the score, take about 3 minutes at the deployed API's 20 chats a minute, and fit within its 100 a day per IP with room for a re-run.
 - **Which questions.** Read from `evals/pipeline/goldens_v1.jsonl`, so the levels line up question by question, by a fixed rule in the script:
   - **21 Answer questions**: 3 per category, hardest first, then by question ID. `factual_retrieval` is all easy, so it falls back to ID order.
   - **All 20 other questions**: 7 Clarification, 8 Abstention, 5 Refusal.
@@ -150,11 +150,47 @@ Metrics, thresholds and data for stages 3 to 5 are decided when each stage start
   - Every Answer golden has a citation target.
   - Every follow-up's sources are current and citable.
 - **Reuse.** `citation_target` and the Response Types come from `evals/pipeline/build_goldens.py`, loaded by path, so the two levels can't drift apart.
-- **For the eval stage.**
-  - Each G-Eval metric gets fixed `evaluation_steps` and a `rubric` with score bands, rather than a `criteria` the judge turns into new steps on every run.
-  - This matters more because `gpt-5.6-luna` has no logprobs, so G-Eval reports the judge's integer score unsmoothed.
-  - Run the three metrics twice on about 10 questions. If scores often move by more than one band, compare a judge with logprobs (`gpt-4.1-mini`, or `gpt-5.4-2026-03-05`) on the hand-labelled sample.
 - **Deferred: operational metrics.** Latency, generator cost per question (from the server's `token_usage` log, matched by request ID) and reliability (HTTP status mix, error rate, replies that parse as `ChatResponse`) will be revisited. They need nothing from the goldens.
+
+## Application eval
+
+- **Running it.**
+  - Start the API, then from the repo root run `uv run --project backend --group evals python evals/application/run_eval.py`.
+  - `--base-url` picks the API (default `http://localhost:8000`). `--limit N` runs the first N questions and N conversations. `--judge-model` works as in the other runners.
+  - A 2-question, 2-conversation smoke run cost $0.0045 in judge tokens with `gpt-5.6-luna`, so a full run is expected to cost about $0.06.
+- **What answers.**
+  - The API over HTTP, whatever it runs. Each golden is sent as a `ChatRequest` with its As-Of Date. Each conversation is sent with its three turns.
+  - `GET /api/health` must be ok first.
+  - Requests go 4 at a time, and at most `rate_limit_per_minute` in any 61 seconds. The API's limit was raised from 10 to 20 a minute on 2026-10-30, so a full run takes about 3 minutes rather than 5.
+  - A 429 is retried after its `Retry-After`, up to 3 attempts.
+- **What is judged.**
+  - Every reply that parses as a `ChatResponse`, whatever its Response Type, with its `[n]` markers removed.
+  - Unlike the pipeline, a Clarification, Abstention or Refusal is judged too. The expected output says what kind of reply is right, and Correctness checks the kind first.
+  - A failed request, meaning an HTTP error or a body that isn't a `ChatResponse`, scores 0 on every metric and is listed under `request_errors`.
+- **Metrics.**
+  - DeepEval `GEval` for the questions and `ConversationalGEval` for the conversations. Each has fixed `evaluation_steps` and a 0–10 `rubric` in four bands, with `threshold=0`, rather than a `criteria` the judge turns into new steps on every run.
+  - Fixed steps matter more here because `gpt-5.6-luna` has no logprobs, so G-Eval reports the judge's integer score unsmoothed.
+  - The steps and bands are versioned as `METRICS_VERSION` (v1). Compare runs only within one version.
+  - **Correctness** (input, reply, expected output): does anything contradict the expected output, or present a superseded rule as current?
+    - It checks the kind of reply first: a clarifying question must ask for the same missing information, and a refusal or abstention must also decline.
+    - Missing points aren't penalised. In the smoke run, they were until a step said so, which made Correctness a second Completeness.
+  - **Completeness** (input, reply, expected output): the share of the expected output's key points the reply covers, the main point weighted most. Extra points aren't penalised.
+  - **Style** (input and reply only): `prompt.py`'s style rules, as checks. Direct answer first, plain and succinct, no restated question or unasked background, a bulleted list for more than two items.
+  - **Conversations.** The same steps, worded for the conversation. Only the last assistant turn is judged; the earlier Clarification is fixed.
+  - **Response Type match** for every golden, with no judge.
+- **A known limit.** The judge sees the expected output, not the sources. So Correctness can't verify a true detail the expected output leaves out, and it may mark one as unsupported. In the smoke run, a reply was marked down for the handbook's "contracts issued from 1 January 2025" condition. Grounding is Faithfulness's job, at the generation and pipeline levels.
+- **Every setting is recorded**:
+  - the base URL;
+  - the chat model, reasoning effort and output cap;
+  - the prompt version, chunking version, embedding model, `retrieval_k` and threshold;
+  - the rate limit;
+  - the judge model and metrics version;
+  - both golden files' names, hashes and the number used.
+
+  The API doesn't report its settings, so all but the base URL come from the local `.env` and code. They describe the server only when it runs the same ones.
+- **Results.** The same three kinds of file, under `evals/results/application/`, with two `test_run_*.json` files: one for the questions, one for the conversations. Means are given overall and for each selection group, with the follow-ups as their own group. The report shows each conversation's turns, the expected answer, the reply, its citations and the judge's reasons.
+- **Judge consistency is still to be checked.** Run the three metrics twice on about 10 questions. If scores often move by more than one band, compare a judge with logprobs (`gpt-4.1-mini`, or `gpt-5.4-2026-03-05`) on the hand-labelled sample.
+- **No tracing**, as in the other evals, apart from whatever the server itself traces.
 
 ## Retriever eval
 
