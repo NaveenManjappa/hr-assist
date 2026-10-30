@@ -131,7 +131,7 @@ Fill in `.env` at the repo root. The backend reads it no matter which directory 
 | `EMBEDDING_MODEL` | no | Defaults to `text-embedding-3-small`. Changing it means re-ingesting. |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | no | Set `LANGSMITH_TRACING=true` to trace each request. EU accounts also need `LANGSMITH_ENDPOINT`. |
 | `FRONTEND_ORIGIN` | no | The CORS origin. Defaults to `http://localhost:4200`. |
-| `RATE_LIMIT_PER_MINUTE` | no | Chats each client IP may send in a rolling minute. Defaults to `10`. |
+| `RATE_LIMIT_PER_MINUTE` | no | Chats each client IP may send in a rolling minute. Defaults to `20`. |
 | `RATE_LIMIT_PER_DAY` | no | Chats each client IP may send per UTC day. Defaults to `100`. |
 | `RATE_LIMIT_GLOBAL_PER_DAY` | no | Chats answered per UTC day across all clients. Defaults to `1000`. |
 | `TRUSTED_PROXY_HOPS` | no | How many `X-Forwarded-For` entries, counted from the right, were added by proxies you trust. The client IP is the leftmost of those. `0` ignores the header and uses the socket peer. Defaults to `1`. |
@@ -232,7 +232,7 @@ GitHub runs scheduled workflows only from the default branch, and turns them off
 - **Follow-ups keep only one question of context.** Retrieval searches with the Employee's last two messages, so a reply to a Clarification, or a follow-up such as "and for part-timers?", is searched together with the question before it. A follow-up about something asked two or more questions earlier still searches without it. The last 5 messages do reach the model, but the chunks it needs may not have been retrieved.
 - **Only current documents are searched.** Questions about a past date, such as "What was the carryover rule on 15 June 2026?", can't find the superseded policy, so they get today's rules or an Abstention ([ADR 0007](docs/adr/0007-search-only-current-documents.md)). Summary Decks still compete with Policy Documents for places, and the prompt decides which one prevails.
 - **No streaming.** The reply appears all at once, after the full answer has been generated.
-- **The demo is rate-limited.** Each IP can send 10 chats a minute and 100 a day, and the whole demo answers at most 1000 a day. Beyond that, chats are rejected until the window resets (daily limits reset at midnight UTC). The OpenAI project also stops at $10 a month.
+- **The demo is rate-limited.** Each IP can send 20 chats a minute and 100 a day, and the whole demo answers at most 1000 a day. Beyond that, chats are rejected until the window resets (daily limits reset at midnight UTC). The OpenAI project also stops at $10 a month.
 - **Conversations are logged.** Every question and reply is traced to LangSmith, and Cloud Run's logs keep each visitor's IP address for 30 days by default. The UI says so on first load.
 - **Cold starts.** The backend scales to zero when idle. The first question after a quiet period waits a few seconds while an instance starts; the page itself loads straight away.
 - **Single instance.** Rate-limit counters live in the one instance's memory, so the backend can't scale out, and the counters reset whenever the instance restarts. One instance handles up to 80 requests at once, which is plenty for a demo.

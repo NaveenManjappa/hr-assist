@@ -43,7 +43,7 @@ class Settings(BaseSettings):
 
     frontend_origin: str = "http://localhost:4200"
 
-    rate_limit_per_minute: PositiveInt = 10
+    rate_limit_per_minute: PositiveInt = 20
     rate_limit_per_day: PositiveInt = 100
     rate_limit_global_per_day: PositiveInt = 1000
     trusted_proxy_hops: NonNegativeInt = 1

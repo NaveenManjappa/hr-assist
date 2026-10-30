@@ -246,7 +246,7 @@ The demo is public with no login, and every question costs OpenAI tokens. There 
 flowchart LR
     R[Request] --> V{"Valid?<br/>at most 20 messages<br/>at most 4000 chars each"}
     V -- no --> E1[422 validation_error]
-    V -- yes --> P{"Per-IP limit<br/>10 per minute<br/>100 per day"}
+    V -- yes --> P{"Per-IP limit<br/>20 per minute<br/>100 per day"}
     P -- over --> E2[429 rate_limited]
     P -- ok --> G{"Global limit<br/>1000 chats per day"}
     G -- over --> E3[429 rate_limited]
@@ -265,7 +265,7 @@ What a request costs: one chat sends about 5,000 input tokens (8 chunks) and ret
 
 **Bots that find the Cloud Run URL.** Cloud Run gives the service a public `https://hr-assist-api-….run.app` address. Firebase Hosting can only forward requests to a publicly reachable service, and Google's docs say that restricting ingress or turning off that URL breaks Firebase rewrites. So someone could call the backend directly and bypass Firebase. This is acceptable for Stage 2 because the limits above live **inside the app**, so every path hits them. The worst a bot can do is use up the day's quota until midnight UTC. A stronger fix, **Firebase App Check**, is left for Stage 5 (see decision D9).
 
-**Why exactly one instance.** The rate-limit counters live in the instance's memory. With two instances each would count separately, and a visitor could make 20 requests a minute. Capping Cloud Run at one instance keeps the counts correct. Google notes the cap "can be exceeded for a brief period", for example during a deploy, which is fine for a demo. One instance can handle up to 80 requests at once, and our handlers are async, so one is enough. When the instance restarts, the counters reset. The limits are settings (`RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_DAY`, `RATE_LIMIT_GLOBAL_PER_DAY`), and a rejection's `Retry-After` header says how many seconds until the window resets.
+**Why exactly one instance.** The rate-limit counters live in the instance's memory. With two instances each would count separately, and a visitor could make 40 requests a minute. Capping Cloud Run at one instance keeps the counts correct. Google notes the cap "can be exceeded for a brief period", for example during a deploy, which is fine for a demo. One instance can handle up to 80 requests at once, and our handlers are async, so one is enough. When the instance restarts, the counters reset. The limits are settings (`RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_DAY`, `RATE_LIMIT_GLOBAL_PER_DAY`), and a rejection's `Retry-After` header says how many seconds until the window resets.
 
 **Which IP counts.** The client IP is read from `X-Forwarded-For`, counting `TRUSTED_PROXY_HOPS` entries from the right (default `1`). Each proxy appends the address it received the request from, so entries further left were written by the client and are ignored. Without the header, the socket peer is used. The Deploy workflow passes the `TRUSTED_PROXY_HOPS` repo variable through, or `1` if it isn't set.
 
@@ -289,7 +289,7 @@ So **`TRUSTED_PROXY_HOPS` is `2`**, set as a repo variable. The paths disagree, 
 
 On the direct path, an honest caller's header has only one entry. The limiter then falls back to that entry, so honest callers are still counted correctly. A caller who adds a forged entry of their own gets that entry counted instead, and so can dodge the per-IP limits on that path. Only the global daily cap and the OpenAI hard limit hold there, as decision D9 accepts.
 
-To change the setting: `gh variable set TRUSTED_PROXY_HOPS --body <n>`, then rerun the latest Deploy run. Check both by sending 11 chats in a minute through each URL: the 11th must get a 429.
+To change the setting: `gh variable set TRUSTED_PROXY_HOPS --body <n>`, then rerun the latest Deploy run. Check both by sending 21 chats in a minute through each URL: the 21st must get a 429.
 
 ## 9. Decision log
 
@@ -317,7 +317,7 @@ Each decision gives the choice, why it suits this project, what else we consider
 - **Rationale:** recruiters can try the demo without signing up, and the worst-case bill stays small.
 - **Alternatives:** a login or CAPTCHA (more friction); an API gateway or Cloud Armor (costs money); platform-level limits only.
 - **Trade-offs:** in-memory counters need a single instance and reset on restart. The client IP has to be read correctly from `X-Forwarded-For` behind Firebase and Google's front end, without trusting a header a client could fake.
-- **Validation:** tests that the 11th request in a minute gets a 429 and a 21-message request gets a 422; a test that a forged `X-Forwarded-For` header can't get around the limit; the OpenAI dashboard shows the hard limit turned on.
+- **Validation:** tests that the 21st request in a minute gets a 429 and a 21-message request gets a 422; a test that a forged `X-Forwarded-For` header can't get around the limit; the OpenAI dashboard shows the hard limit turned on.
 
 ### D4. Prod Corpus loaded by a manual workflow
 

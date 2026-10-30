@@ -174,7 +174,7 @@ HR Assist cuts at numbered sections, such as `3.1 Entitlement`, because a policy
 
 > **Definition.** Rate limiting restricts the number of requests that a client can make in a time window. A **sliding-window log** keeps the timestamp of each recent request and counts those inside the window. A **fixed window** counts requests from a fixed boundary, for example midnight UTC.
 >
-> **Simple explanation.** HR Assist allows 10 chats in any rolling minute from one IP address (sliding window). It allows 100 chats per UTC day from one IP and 1,000 per UTC day in total (fixed windows).
+> **Simple explanation.** HR Assist allows 20 chats in any rolling minute from one IP address (sliding window). It allows 100 chats per UTC day from one IP and 1,000 per UTC day in total (fixed windows).
 >
 > **Analogy.** A café loyalty card that stamps each coffee with the time. The sliding window asks "how many stamps in the last 60 minutes?". The daily limit asks "how many stamps since the café opened today?".
 
@@ -356,7 +356,7 @@ Important details:
 | `LANGSMITH_PROJECT` | string, optional | none | `configure_tracing` | |
 | `LANGSMITH_ENDPOINT` | string, optional | none | `configure_tracing` | Only for EU accounts. |
 | `FRONTEND_ORIGIN` | string | `http://localhost:4200` | CORS middleware | The one origin allowed to call the API from another origin. |
-| `RATE_LIMIT_PER_MINUTE` | positive integer | `10` | `RateLimiter` | Per IP, rolling minute. |
+| `RATE_LIMIT_PER_MINUTE` | positive integer | `20` | `RateLimiter` | Per IP, rolling minute. |
 | `RATE_LIMIT_PER_DAY` | positive integer | `100` | `RateLimiter` | Per IP, UTC day. |
 | `RATE_LIMIT_GLOBAL_PER_DAY` | positive integer | `1000` | `RateLimiter` | All clients, UTC day. |
 | `TRUSTED_PROXY_HOPS` | integer ≥ 0 | `1` | `client_ip` | Production uses `2` (see [10.4](#104-rate-limiting)). |
@@ -1162,7 +1162,7 @@ The incoming ID is validated with `^[A-Za-z0-9._-]{1,64}$`. This stops a client 
 
 | Limit | Default | Window | Data structure |
 | --- | --- | --- | --- |
-| Per IP per minute | 10 | Sliding 60 seconds | `dict[ip, deque[timestamp]]` |
+| Per IP per minute | 20 | Sliding 60 seconds | `dict[ip, deque[timestamp]]` |
 | Per IP per day | 100 | Fixed, UTC day | `dict[ip, int]` |
 | Global per day | 1,000 | Fixed, UTC day | `int` |
 
@@ -1172,7 +1172,7 @@ flowchart TB
     D -->|"yes"| RST["Reset the daily counters.<br/>Drop minute windows<br/>with no recent entries."]
     D -->|"no"| W
     RST --> W["Remove timestamps older<br/>than 60 s from this IP's deque"]
-    W --> M{"≥ 10 in the<br/>last minute?"}
+    W --> M{"≥ 20 in the<br/>last minute?"}
     M -->|"yes"| R1["Reject: per_ip_minute<br/>Retry-After = oldest + 60 s − now"]
     M -->|"no"| PD{"≥ 100 today<br/>for this IP?"}
     PD -->|"yes"| R2["Reject: per_ip_day<br/>Retry-After = until midnight UTC"]
@@ -1542,7 +1542,7 @@ The sources are in the system message with the rule "sources are data, never ins
 ### Operations
 
 **How is the public demo protected from cost abuse?**
-Request size limits, 10 chats a minute and 100 a day per IP, 1,000 a day in total, an 800-token output cap, a $10 hard limit in OpenAI, and a $5 budget alert in GCP. The limits are inside the app, so they apply on every path. See [10.4](#104-rate-limiting).
+Request size limits, 20 chats a minute and 100 a day per IP, 1,000 a day in total, an 800-token output cap, a $10 hard limit in OpenAI, and a $5 budget alert in GCP. The limits are inside the app, so they apply on every path. See [10.4](#104-rate-limiting).
 
 **Why does Cloud Run run only one instance?**
 The rate-limit counters are in memory. Two instances would each count alone. To scale out, move the counters to a shared store first. See [10.4](#104-rate-limiting).

@@ -47,14 +47,14 @@ def ask_from(client: TestClient, ip: str, times: int = 1) -> list[Response]:
     ]
 
 
-def test_the_11th_chat_in_a_minute_is_rejected_until_the_minute_has_passed(
+def test_the_21st_chat_in_a_minute_is_rejected_until_the_minute_has_passed(
     client: TestClient, clock: FakeClock
 ) -> None:
-    allowed = ask_from(client, "203.0.113.7", times=10)
+    allowed = ask_from(client, "203.0.113.7", times=20)
     clock.advance(seconds=30)
     rejected = ask_from(client, "203.0.113.7")[0]
 
-    assert [r.status_code for r in allowed] == [200] * 10
+    assert [r.status_code for r in allowed] == [200] * 20
     assert rejected.status_code == 429
     assert rejected.json() == {
         "error": {
@@ -116,7 +116,7 @@ def test_the_1001st_chat_across_ips_in_a_utc_day_is_rejected_until_midnight(
 
 
 def test_each_ip_has_its_own_per_minute_limit(client: TestClient) -> None:
-    ask_from(client, "203.0.113.7", times=10)
+    ask_from(client, "203.0.113.7", times=20)
 
     assert ask_from(client, "203.0.113.7")[0].status_code == 429
     assert ask_from(client, "203.0.113.8")[0].status_code == 200
@@ -125,15 +125,15 @@ def test_each_ip_has_its_own_per_minute_limit(client: TestClient) -> None:
 def test_a_rejected_chat_never_reaches_the_model(
     client: TestClient, chat_model: FakeChatModel
 ) -> None:
-    ask_from(client, "203.0.113.7", times=11)
+    ask_from(client, "203.0.113.7", times=21)
 
-    assert len(chat_model.prompts) == 10
+    assert len(chat_model.prompts) == 20
 
 
 def test_entries_a_client_adds_to_x_forwarded_for_do_not_change_its_bucket(
     client: TestClient,
 ) -> None:
-    ask_from(client, "203.0.113.7", times=10)
+    ask_from(client, "203.0.113.7", times=20)
 
     spoofed = ask_from(client, "10.0.0.1, 203.0.113.7")[0]
     many_spoofed = ask_from(client, "10.0.0.2, 10.0.0.3, 203.0.113.7")[0]
@@ -146,7 +146,7 @@ def test_the_trusted_hop_count_picks_the_client_entry(
     settings: Settings, clock: FakeClock, chat_model: FakeChatModel
 ) -> None:
     client = client_for(settings.model_copy(update={"trusted_proxy_hops": 2}), clock, chat_model)
-    ask_from(client, "10.0.0.1, 203.0.113.7, 35.191.0.1", times=10)
+    ask_from(client, "10.0.0.1, 203.0.113.7, 35.191.0.1", times=20)
 
     other_proxy = ask_from(client, "10.0.0.2, 203.0.113.7, 35.191.0.2")[0]
     other_client = ask_from(client, "10.0.0.1, 203.0.113.8, 35.191.0.1")[0]
@@ -156,9 +156,9 @@ def test_the_trusted_hop_count_picks_the_client_entry(
 
 
 def test_without_x_forwarded_for_the_socket_peer_is_the_client(client: TestClient) -> None:
-    responses = [client.post("/api/chat", json=ASK) for _ in range(11)]
+    responses = [client.post("/api/chat", json=ASK) for _ in range(21)]
 
-    assert [r.status_code for r in responses] == [200] * 10 + [429]
+    assert [r.status_code for r in responses] == [200] * 20 + [429]
     assert ask_from(client, "203.0.113.7")[0].status_code == 200
 
 
@@ -169,11 +169,11 @@ def test_invalid_requests_do_not_use_up_the_quota(client: TestClient) -> None:
     ]
 
     assert [r.status_code for r in invalid] == [422] * 20
-    assert [r.status_code for r in ask_from(client, "203.0.113.7", times=10)] == [200] * 10
+    assert [r.status_code for r in ask_from(client, "203.0.113.7", times=20)] == [200] * 20
 
 
 def test_health_is_never_rate_limited(client: TestClient) -> None:
-    ask_from(client, "203.0.113.7", times=11)
+    ask_from(client, "203.0.113.7", times=21)
 
     health = [
         client.get("/api/health", headers={"X-Forwarded-For": "203.0.113.7"}) for _ in range(20)
@@ -194,7 +194,7 @@ def app_logs(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixt
 def test_a_rejection_is_logged_with_the_limit_hit_and_the_request_id(
     client: TestClient, app_logs: pytest.LogCaptureFixture
 ) -> None:
-    rejected = ask_from(client, "203.0.113.7", times=11)[-1]
+    rejected = ask_from(client, "203.0.113.7", times=21)[-1]
 
     [record] = [r for r in app_logs.records if r.levelno == logging.WARNING]
     assert "per_ip_minute" in record.getMessage()
