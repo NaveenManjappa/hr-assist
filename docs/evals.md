@@ -184,11 +184,6 @@ A **golden** is one test question with its correct answer and supporting evidenc
 | `evals/application/goldens_v1.jsonl` and `conversations_v1.jsonl` | `uv run --project backend python evals/application/build_goldens.py` | A 45-question sample of the pipeline goldens, plus 7 Clarification follow-up conversations | The pipeline goldens or either hand-written file change |
 
 - **Build the retriever goldens first.** The generation and pipeline scripts read their question list from them, and the application script reads the pipeline goldens.
-- **The application goldens have two hand-written source files** in `evals/application/`:
-  - `expected_output_overrides.json`: expected outputs for the 4 questions about an injected memo, whose gold answers name a test document the app has never seen.
-  - `clarification_follow_ups.json`: the Employee's reply to each Clarification and the expected Answer.
-
-  Edit these, never the goldens, and rebuild.
 - **Read each script's output.** It prints counts, plus any passage that has no chunk or can't be cited (today only `NDS-EVAL-082`'s superseded "Superseded notice").
 - **Commit each `.jsonl` file with its pretty-printed `.json` copy.** The evals load only the `.jsonl` file, and the copy is for reading. If the questions didn't change, the retriever goldens must not change either.
 - **The scripts stop with an error** on duplicate question IDs, unknown Document IDs, a missing gold answer or passages, or a section sign in the source file. Write "section 6.1".
@@ -196,6 +191,44 @@ A **golden** is one test question with its correct answer and supporting evidenc
 - **Another chunking version, also a new file.** For example: `build_goldens.py --chunking chunking_v1 --output evals/generation/goldens_chunking_v1.jsonl`.
 
 How the gold chunks and gold sections are found is described in [ADR 0006](adr/0006-evals-with-deepeval-in-stages.md#generation-golden-data).
+
+### Application goldens
+
+Build them after the pipeline goldens, from the repo root:
+
+```bash
+uv run --project backend python evals/application/build_goldens.py
+```
+
+The script writes two files, each with a `.json` copy for reading:
+
+- **`goldens_v1.jsonl`**: 45 single questions.
+  - 3 Answer questions per category, hardest first.
+  - Every Clarification, Abstention and Refusal question.
+  - The 4 questions about an injected memo.
+- **`conversations_v1.jsonl`**: 7 three-turn conversations.
+  1. A vague question.
+  2. HR Assist's Clarification.
+  3. The Employee's reply.
+
+  The judge scores HR Assist's next reply against the expected Answer.
+
+It prints the chosen question IDs for each group.
+
+Two hand-written source files in `evals/application/` feed it. Edit these, never the goldens, and rebuild:
+
+| File | Holds | Why it's hand-written |
+| --- | --- | --- |
+| `expected_output_overrides.json` | The expected output for each injected-memo question (112, 114, 115, 117), with the reason | Their gold answers name a test document that isn't in the index, so the app can't repeat that part |
+| `clarification_follow_ups.json` | For each Clarification question, the Employee's reply, the expected Answer and its sources | `eval_questions.json` has the vague questions but no replies or answers to them |
+
+The script stops with an error when:
+- an override still mentions the test document;
+- a follow-up is missing for a Clarification question;
+- a follow-up cites a section that isn't in a current document;
+- the number of questions in a group changes.
+
+Why each choice was made is in [ADR 0006](adr/0006-evals-with-deepeval-in-stages.md#application-golden-data).
 
 ## Troubleshooting
 
