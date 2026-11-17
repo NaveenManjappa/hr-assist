@@ -4,7 +4,7 @@ from collections import deque
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta
 
-from hr_assist.settings import Settings
+from hr_assist.config.settings import Settings
 
 Clock = Callable[[], datetime]
 MINUTE = timedelta(minutes=1)

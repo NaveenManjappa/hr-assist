@@ -35,6 +35,10 @@ dev = [
     "ruff>=0.17.1",
     "types-pyyaml>=6.0.12.20260906",
 ]
+evals = [
+    "deepeval>=4.3.2",
+    "httpx>=0.28.1",
+]
 ingest = [
     "langchain-pymupdf4llm>=1.28.0",
     "pymupdf4llm>=1.28.0",
@@ -43,6 +47,8 @@ ingest = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# tests/ mirrors src/. Its subfolders import the shared fakes with `from conftest import ...`.
+pythonpath = ["tests"]
 
 [tool.ruff]
 line-length = 100
@@ -54,6 +60,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 strict = true
 files = ["src", "tests"]
 plugins = ["pydantic.mypy"]
+mypy_path = "tests"
 
 [tool.uv]
 default-groups = ["dev", "ingest"]

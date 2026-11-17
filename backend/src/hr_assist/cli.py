@@ -2,14 +2,14 @@ import argparse
 from collections import Counter
 from pathlib import Path
 
+from hr_assist.config.settings import Settings
 from hr_assist.corpus import load_manifest
 from hr_assist.corpus.manifest import DEFAULT_MANIFEST
-from hr_assist.settings import Settings
 
 
 def ingest(manifest: Path) -> None:
     from hr_assist.ingestion import STRATEGIES, build_chunks
-    from hr_assist.ingestion.index import rebuild_index
+    from hr_assist.integrations.qdrant import rebuild_index
 
     settings = Settings()
     if settings.chunking_version not in STRATEGIES:

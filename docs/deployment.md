@@ -114,10 +114,10 @@ sequenceDiagram
         F-->>B: 429, UI shows a friendly message
     else within limits
         C->>O: embed the question
-        C->>Q: top 8 similar chunks
-        C->>O: one structured-output call (max 800 output tokens)
+        C->>Q: top k similar current chunks (default 3)
+        C->>O: one structured-output call (max 5000 output tokens)
         O-->>C: Response Type, message, cited sources
-        C-->>F: 200 ChatResponse (Cache-Control: no-store)
+        C-->>F: 200 ChatResponse
         F-->>B: 200, UI renders the Answer and its Citations
     end
 ```
@@ -233,7 +233,7 @@ flowchart TB
     SM -- "values injected as env vars<br/>when an instance starts" --> RSA
 ```
 
-- **Nothing changes in the backend code.** `Settings` in [settings.py](../backend/src/hr_assist/settings.py) already reads environment variables, and it ignores a missing `.env` file.
+- **Nothing changes in the backend code.** `Settings` in [config/settings.py](../backend/src/hr_assist/config/settings.py) already reads environment variables, and it ignores a missing `.env` file.
 - **Changing a key.** Add a new version of the secret in Secret Manager, then redeploy, or deploy a new revision from the console. Running instances keep the old value until they restart, because env vars are read when an instance starts.
 - **`QDRANT_URL` isn't secret.** On its own it's useless without the API key, so it's a plain env var.
 - **The one key in GitHub** belongs to the deploy service account, which can only deploy this one project. See [ADR 0004](adr/0004-service-account-key-before-wif.md) for why it's a key for now and how to remove it later.
@@ -246,11 +246,11 @@ The demo is public with no login, and every question costs OpenAI tokens. There 
 flowchart LR
     R[Request] --> V{"Valid?<br/>at most 20 messages<br/>at most 4000 chars each"}
     V -- no --> E1[422 validation_error]
-    V -- yes --> P{"Per-IP limit<br/>10 per minute<br/>100 per day"}
+    V -- yes --> P{"Per-IP limit<br/>20 per minute<br/>100 per day"}
     P -- over --> E2[429 rate_limited]
     P -- ok --> G{"Global limit<br/>1000 chats per day"}
     G -- over --> E3[429 rate_limited]
-    G -- ok --> M["OpenAI call<br/>max 800 output tokens"]
+    G -- ok --> M["OpenAI call<br/>max 5000 output tokens,<br/>reasoning included"]
     M --> H{"OpenAI project<br/>hard limit $10/month"}
     H -- reached --> E4[OpenAI returns 429<br/>we return 503]
     H -- ok --> OK[Answer]
@@ -265,7 +265,7 @@ What a request costs: one chat sends about 5,000 input tokens (8 chunks) and ret
 
 **Bots that find the Cloud Run URL.** Cloud Run gives the service a public `https://hr-assist-api-….run.app` address. Firebase Hosting can only forward requests to a publicly reachable service, and Google's docs say that restricting ingress or turning off that URL breaks Firebase rewrites. So someone could call the backend directly and bypass Firebase. This is acceptable for Stage 2 because the limits above live **inside the app**, so every path hits them. The worst a bot can do is use up the day's quota until midnight UTC. A stronger fix, **Firebase App Check**, is left for Stage 5 (see decision D9).
 
-**Why exactly one instance.** The rate-limit counters live in the instance's memory. With two instances each would count separately, and a visitor could make 20 requests a minute. Capping Cloud Run at one instance keeps the counts correct. Google notes the cap "can be exceeded for a brief period", for example during a deploy, which is fine for a demo. One instance can handle up to 80 requests at once, and our handlers are async, so one is enough. When the instance restarts, the counters reset. The limits are settings (`RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_DAY`, `RATE_LIMIT_GLOBAL_PER_DAY`), and a rejection's `Retry-After` header says how many seconds until the window resets.
+**Why exactly one instance.** The rate-limit counters live in the instance's memory. With two instances each would count separately, and a visitor could make 40 requests a minute. Capping Cloud Run at one instance keeps the counts correct. Google notes the cap "can be exceeded for a brief period", for example during a deploy, which is fine for a demo. One instance can handle up to 80 requests at once, and our handlers are async, so one is enough. When the instance restarts, the counters reset. The limits are settings (`RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_PER_DAY`, `RATE_LIMIT_GLOBAL_PER_DAY`), and a rejection's `Retry-After` header says how many seconds until the window resets.
 
 **Which IP counts.** The client IP is read from `X-Forwarded-For`, counting `TRUSTED_PROXY_HOPS` entries from the right (default `1`). Each proxy appends the address it received the request from, so entries further left were written by the client and are ignored. Without the header, the socket peer is used. The Deploy workflow passes the `TRUSTED_PROXY_HOPS` repo variable through, or `1` if it isn't set.
 
@@ -289,7 +289,7 @@ So **`TRUSTED_PROXY_HOPS` is `2`**, set as a repo variable. The paths disagree, 
 
 On the direct path, an honest caller's header has only one entry. The limiter then falls back to that entry, so honest callers are still counted correctly. A caller who adds a forged entry of their own gets that entry counted instead, and so can dodge the per-IP limits on that path. Only the global daily cap and the OpenAI hard limit hold there, as decision D9 accepts.
 
-To change the setting: `gh variable set TRUSTED_PROXY_HOPS --body <n>`, then rerun the latest Deploy run. Check both by sending 11 chats in a minute through each URL: the 11th must get a 429.
+To change the setting: `gh variable set TRUSTED_PROXY_HOPS --body <n>`, then rerun the latest Deploy run. Check both by sending 21 chats in a minute through each URL: the 21st must get a 429.
 
 ## 9. Decision log
 
@@ -313,11 +313,11 @@ Each decision gives the choice, why it suits this project, what else we consider
 
 ### D3. Usage protection: layered limits, no login
 
-- **Decision:** a hard limit of $10/month on a separate OpenAI prod project; 10 requests/min and 100/day per IP; 1000 chats/day globally; at most 20 messages per request; 800 output tokens at most; a $5 GCP budget alert.
+- **Decision:** a hard limit of $10/month on a separate OpenAI prod project; 10 requests/min and 100/day per IP; 1000 chats/day globally; at most 20 messages per request; 5000 output tokens at most, reasoning tokens included (raised from 800 when the chat model's reasoning effort was set to low); a $5 GCP budget alert.
 - **Rationale:** recruiters can try the demo without signing up, and the worst-case bill stays small.
 - **Alternatives:** a login or CAPTCHA (more friction); an API gateway or Cloud Armor (costs money); platform-level limits only.
 - **Trade-offs:** in-memory counters need a single instance and reset on restart. The client IP has to be read correctly from `X-Forwarded-For` behind Firebase and Google's front end, without trusting a header a client could fake.
-- **Validation:** tests that the 11th request in a minute gets a 429 and a 21-message request gets a 422; a test that a forged `X-Forwarded-For` header can't get around the limit; the OpenAI dashboard shows the hard limit turned on.
+- **Validation:** tests that the 21st request in a minute gets a 429 and a 21-message request gets a 422; a test that a forged `X-Forwarded-For` header can't get around the limit; the OpenAI dashboard shows the hard limit turned on.
 
 ### D4. Prod Corpus loaded by a manual workflow
 

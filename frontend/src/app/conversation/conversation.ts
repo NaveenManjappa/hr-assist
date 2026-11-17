@@ -30,15 +30,6 @@ export class Conversation {
       ],
     },
     {
-      label: 'Version-aware',
-      icon: ['M12 7v5l3 2', 'M3.5 12a8.5 8.5 0 1 0 2.5-6', 'M3 3v4h4'],
-      description: 'applies the rules in force on the date you ask about',
-      questions: [
-        'On 15 June 2026, what was the carryover rule?',
-        'What was the annual leave allowance under the old leave policy?',
-      ],
-    },
-    {
       label: 'Asks when unclear',
       icon: [
         'M21 12a9 9 0 1 1-3.5-7.1',
