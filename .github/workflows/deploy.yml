@@ -69,7 +69,11 @@ jobs:
           live=$(gcloud run revisions describe "$serving" --project "$PROJECT_ID" --region "$REGION" \
             --format 'value(spec.containers[0].image)')
           # Cloud Run records the image by digest, not by tag, so compare against the tag's digest.
-          digest=$(gcloud artifacts docker images describe "$IMAGE" --format 'value(image_summary.digest)')
+          # Newer Docker pushes a manifest list (the image plus a build attestation) under the tag.
+          # Cloud Run then records the linux/amd64 image inside it, so compare against that one.
+          raw=$(docker buildx imagetools inspect "$IMAGE" --raw)
+          digest=$(echo "$raw" | jq -r '.manifests[]? | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest')
+          [ -n "$digest" ] || digest=$(gcloud artifacts docker images describe "$IMAGE" --format 'value(image_summary.digest)')
           expected="${IMAGE%:*}@$digest"
           echo "Revision $serving serves 100% of traffic with image $live"
           [ "$live" = "$expected" ] || { echo "::error::Expected $expected ($IMAGE)"; exit 1; }
