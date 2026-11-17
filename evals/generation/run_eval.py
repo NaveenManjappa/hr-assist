@@ -38,7 +38,6 @@ from langchain_core.messages import BaseMessage
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from hr_assist.answering import ChatModel
-from hr_assist.answering.adapters import OpenAIChatModel
 from hr_assist.answering.answerer import Answerer
 from hr_assist.answering.models import (
     ChatMessage,
@@ -47,9 +46,10 @@ from hr_assist.answering.models import (
     GeneratedReply,
 )
 from hr_assist.answering.prompt import PROMPT_VERSION
+from hr_assist.config.settings import REPO_ROOT, REPO_ROOT_ENV_FILE, Settings
 from hr_assist.corpus import Chunk
 from hr_assist.errors import UpstreamError
-from hr_assist.settings import REPO_ROOT, REPO_ROOT_ENV_FILE, Settings
+from hr_assist.integrations.openai import OpenAIChatModel
 
 GOLDENS = Path(__file__).resolve().parent / "goldens_v1.jsonl"
 RESULTS = REPO_ROOT / "evals" / "results" / "generation"

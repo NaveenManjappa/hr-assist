@@ -47,6 +47,8 @@ ingest = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# tests/ mirrors src/. Its subfolders import the shared fakes with `from conftest import ...`.
+pythonpath = ["tests"]
 
 [tool.ruff]
 line-length = 100
@@ -58,6 +60,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 strict = true
 files = ["src", "tests"]
 plugins = ["pydantic.mypy"]
+mypy_path = "tests"
 
 [tool.uv]
 default-groups = ["dev", "ingest"]

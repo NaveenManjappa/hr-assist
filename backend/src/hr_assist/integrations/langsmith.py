@@ -1,6 +1,6 @@
 import os
 
-from hr_assist.settings import Settings
+from hr_assist.config.settings import Settings
 
 
 def configure_tracing(settings: Settings) -> None:

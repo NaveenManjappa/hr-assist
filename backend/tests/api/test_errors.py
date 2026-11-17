@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from hr_assist.api import UpstreamError, create_app
 from hr_assist.api.request_id import RequestIdLogFilter
-from hr_assist.settings import Settings
+from hr_assist.config.settings import Settings
 
 
 def app_with_probe_routes(settings: Settings) -> FastAPI:

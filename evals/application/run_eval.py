@@ -53,7 +53,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from hr_assist.answering.models import ChatResponse
 from hr_assist.answering.prompt import PROMPT_VERSION
-from hr_assist.settings import REPO_ROOT, REPO_ROOT_ENV_FILE, Settings
+from hr_assist.config.settings import REPO_ROOT, REPO_ROOT_ENV_FILE, Settings
 
 HERE = Path(__file__).resolve().parent
 GOLDENS = HERE / "goldens_v1.jsonl"
@@ -127,7 +127,7 @@ COMPLETENESS_RUBRIC = [
     Rubric(score_range=(9, 10), expected_outcome="Covers every key point."),
 ]
 
-# The style rules of answering/prompt.py, as checks.
+# The style rules of prompts/answer.md, as checks.
 STYLE_STEPS = [
     "Check that 'actual output' gives the direct answer to 'input', or its clarifying question "
     "or refusal, in its first one or two sentences.",

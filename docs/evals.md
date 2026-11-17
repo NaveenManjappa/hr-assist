@@ -145,15 +145,15 @@ Set these in `.env`.
 | `EMBEDDING_MODEL` | `text-embedding-3-small` | Retriever, pipeline | The model that turns text into vectors for search |
 | `RETRIEVAL_K` | `3` | Retriever, pipeline | How many chunks come back for each question |
 | `RETRIEVAL_SCORE_THRESHOLD` | `0.65` | Retriever, pipeline | The lowest relevance a chunk needs. `0` turns it off |
-| `CHAT_MODEL`, `REASONING_EFFORT`, `MAX_OUTPUT_TOKENS` | See `settings.py` | Generation, pipeline | The model that writes the answers |
+| `CHAT_MODEL`, `REASONING_EFFORT`, `MAX_OUTPUT_TOKENS` | See `config/settings.py` | Generation, pipeline | The model that writes the answers |
 | `APP_ENV` | Required | Retriever, pipeline | Picks which index is searched. Keep `development` for evals |
 | `EVAL_JUDGE_MODEL` | `gpt-5.6-luna` | All | The judge. Used by the evals only, never by the app |
 
-The prompt (`answering/prompt.py`) and the metrics aren't settings: change them in code. Every setting is described in the [developer guide, section 4.2](developer-guide.md#42-every-setting).
+The prompt (`prompts/answer.md`) and the metrics aren't settings: change them in code. Every setting is described in the [developer guide, section 4.2](developer-guide.md#42-every-setting).
 
-### Change `.env`, not `settings.py`
+### Change `.env`, not `config/settings.py`
 
-**Production has no `.env`.** It uses the defaults in `settings.py`, apart from the few values the [deploy workflow](../.github/workflows/deploy.yml) sets. So a change to `settings.py` goes live on the next deploy. Change it only once an eval has shown a value is better, in a PR, with the two summaries as evidence.
+**Production has no `.env`.** It uses the defaults in `config/settings.py`, apart from the few values the [deploy workflow](../.github/workflows/deploy.yml) sets. So a change to `config/settings.py` goes live on the next deploy. Change it only once an eval has shown a value is better, in a PR, with the two summaries as evidence.
 
 > **To measure production, your `.env` must match it.** For example, if your `.env` sets `RETRIEVAL_K=5`, the eval measures 5, while production uses the default of 3.
 

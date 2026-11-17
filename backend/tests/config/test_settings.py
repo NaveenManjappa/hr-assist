@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from hr_assist.settings import Settings
+from hr_assist.config.settings import Settings
 
 
 def test_the_collection_is_named_by_environment_chunking_version_and_embedding_model(

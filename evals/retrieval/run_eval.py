@@ -35,9 +35,9 @@ from deepeval.test_case import LLMTestCase
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from qdrant_client import QdrantClient
 
-from hr_assist.answering.adapters import QdrantRetriever
+from hr_assist.config.settings import REPO_ROOT, REPO_ROOT_ENV_FILE, Settings
 from hr_assist.ingestion import STRATEGIES
-from hr_assist.settings import REPO_ROOT, REPO_ROOT_ENV_FILE, Settings
+from hr_assist.integrations.qdrant import QdrantRetriever
 
 GOLDENS = Path(__file__).resolve().parent / "goldens_v1.jsonl"
 RESULTS = REPO_ROOT / "evals" / "results" / "retrieval"

@@ -6,8 +6,8 @@ import httpx2
 import pytest
 from langchain_core.messages import HumanMessage
 
-from hr_assist.answering.adapters import OpenAIChatModel
-from hr_assist.settings import Settings
+from hr_assist.config.settings import Settings
+from hr_assist.integrations.openai import OpenAIChatModel
 
 COMPLETION = {
     "id": "chatcmpl-test",

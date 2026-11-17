@@ -10,7 +10,7 @@ from httpx2 import Response
 from hr_assist.answering import AssistantReply
 from hr_assist.api import create_app
 from hr_assist.api.request_id import RequestIdLogFilter
-from hr_assist.settings import Settings
+from hr_assist.config.settings import Settings
 
 ASK = {"messages": [{"role": "user", "content": "How much annual leave do I get?"}]}
 

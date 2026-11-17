@@ -14,10 +14,10 @@ import re
 import sys
 from pathlib import Path
 
+from hr_assist.config.settings import REPO_ROOT
 from hr_assist.corpus import Chunk
 from hr_assist.corpus.manifest import load_manifest
 from hr_assist.ingestion import STRATEGIES, build_chunks
-from hr_assist.settings import REPO_ROOT
 
 EVAL_QUESTIONS = REPO_ROOT / "evals" / "eval_questions.json"
 RETRIEVAL_GOLDENS = REPO_ROOT / "evals" / "retrieval" / "goldens_v1.jsonl"

@@ -16,8 +16,8 @@ import json
 import sys
 from pathlib import Path
 
+from hr_assist.config.settings import REPO_ROOT
 from hr_assist.corpus.manifest import load_manifest
-from hr_assist.settings import REPO_ROOT
 
 HERE = Path(__file__).resolve().parent
 EVAL_QUESTIONS = REPO_ROOT / "evals" / "eval_questions.json"

@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from pydantic import Field, NonNegativeInt, PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 REPO_ROOT_ENV_FILE = REPO_ROOT / ".env"
 
 

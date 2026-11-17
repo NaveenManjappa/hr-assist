@@ -207,7 +207,7 @@ flowchart TB
 
 ### 3.2 Layers in the back end
 
-The back end has four layers. Each layer is one Python package under `backend/src/hr_assist/`.
+The back end has four layers. Each layer is one Python package under `backend/src/hr_assist/`. Beside them, `integrations/` holds the code that talks to outside services, `config/` holds the settings, and `prompts/` holds the system prompt.
 
 ```mermaid
 flowchart TB
@@ -221,38 +221,42 @@ flowchart TB
         ANS["answerer.py<br/>Answerer + Protocols"]
         PR["prompt.py"]
         MOD["models.py"]
-        AD["adapters.py<br/>QdrantRetriever, OpenAIChatModel"]
     end
     subgraph ingestion["ingestion/ (offline layer)"]
         PIPE["pipeline.py"]
         PARSE["parser.py"]
         NORM["normaliser.py"]
         CHK["chunking.py"]
-        IDX["index.py"]
     end
     subgraph corpus["corpus/ (shared domain model)"]
         MANI["manifest.py"]
         CHUNK["chunk.py"]
     end
-    SET["settings.py"]
+    subgraph integrations["integrations/ (outside services)"]
+        AD["openai.py<br/>OpenAIChatModel"]
+        QD2["qdrant.py<br/>QdrantRetriever, QdrantVectorStore,<br/>rebuild_index"]
+        TR["langsmith.py"]
+    end
+    SET["config/settings.py"]
+    PRM["prompts/answer.md"]
     ERR["errors.py"]
-    VS["vector_store.py"]
-    TR["tracing.py"]
     CLIM["cli.py"]
 
     APP --> CHAT & HEALTH & MW
-    APP --> AD & ANS & VS & TR
+    APP --> AD & QD2 & ANS & TR
     CHAT --> ANS
     ANS --> PR & MOD
+    PR --> PRM
     AD --> MOD
     ANS --> CHUNK
-    AD --> CHUNK & ERR
-    CLIM --> PIPE & IDX & MANI
+    AD --> ERR
+    QD2 --> CHUNK & ERR
+    CLIM --> PIPE & QD2 & MANI
     PIPE --> PARSE & NORM & CHK
     CHK --> CHUNK & MANI
     MANI --> SET
     AD --> SET
-    IDX --> SET
+    QD2 --> SET
 ```
 
 Rules that the layers follow:
@@ -260,6 +264,7 @@ Rules that the layers follow:
 - **`corpus/` is the shared domain model.** Both ingestion and answering use `Chunk` and `ChunkMetadata`. This is the contract between the offline and online halves. If ingestion writes a field, answering can read it.
 - **`ingestion/` never runs in the server.** The server image does not install the PDF and PPTX libraries (the `ingest` dependency group). `cli.py` imports `ingestion` inside the `ingest` function, so the module loads only when you run the command.
 - **`answering/` does not know about HTTP.** It takes a `ChatRequest` and returns a `ChatResponse`. You can call it from a script, a test or an evaluation harness.
+- **Only `integrations/` knows about OpenAI, Qdrant and LangSmith.** Swapping a provider means changing one module there.
 - **`api/` does not know about Qdrant or OpenAI.** It gets its dependencies from `create_app`, the **composition root**.
 
 > **Definition.** A composition root is the one place in an application where the code creates the concrete objects and connects them together.
@@ -276,7 +281,7 @@ The code defines four small interfaces (ports). Each has one production implemen
 | --- | --- | --- | --- | --- |
 | `Retriever` | `answering/answerer.py:24` | `QdrantRetriever` | `FakeRetriever` | Find the top `k` chunks for a query. |
 | `ChatModel` | `answering/answerer.py:28` | `OpenAIChatModel` | `FakeChatModel` | Turn a prompt into a typed `GeneratedReply`. |
-| `VectorStore` | `vector_store.py:8` | `QdrantVectorStore` | `FakeVectorStore` | Report if Qdrant is reachable (health check). |
+| `VectorStore` | `api/health.py:9` | `QdrantVectorStore` | `FakeVectorStore` | Report if Qdrant is reachable (health check). |
 | `Clock` | `api/rate_limit.py:9` | `utc_now` | `FakeClock` | Give the current time to the rate limiter. |
 
 The ingestion side has two more ports, `Parser` (`ingestion/parser.py:21`) and `ChunkingStrategy` (`ingestion/chunking.py:19`). They make it possible to add a new parser or chunker without a change to the pipeline.
@@ -288,7 +293,7 @@ The ingestion side has two more ports, `Parser` (`ingestion/parser.py:21`) and `
 | Path | Contents |
 | --- | --- |
 | `backend/src/hr_assist/` | The Python package. See [section 18](#18-file-index) for each file. |
-| `backend/tests/` | Pytest tests and fakes. |
+| `backend/tests/` | Pytest tests, in folders that mirror `src/hr_assist/`. The shared fakes are in `conftest.py`. |
 | `backend/pyproject.toml` | Dependencies, the `hr-assist` command, and the ruff, mypy and pytest settings. |
 | `backend/Dockerfile` | The production image of the API. |
 | `data/manifest.yaml` | The Corpus Manifest. |
@@ -307,7 +312,7 @@ The ingestion side has two more ports, `Parser` (`ingestion/parser.py:21`) and `
 
 ### 4.1 How settings load
 
-All runtime configuration is in one class, `Settings`, in `settings.py`. It uses `pydantic-settings`.
+All runtime configuration is in one class, `Settings`, in `config/settings.py`. It uses `pydantic-settings`.
 
 > **Definition.** `pydantic-settings` is a library that fills a typed Pydantic model from environment variables and `.env` files, and validates each value against its type.
 >
@@ -327,7 +332,7 @@ flowchart LR
 
 Important details:
 
-- **`REPO_ROOT`** is three folders above `settings.py` (`Path(__file__).resolve().parents[3]`). The code finds `.env` and `data/manifest.yaml` from it. So the commands work from any working folder.
+- **`REPO_ROOT`** is four folders above `config/settings.py` (`Path(__file__).resolve().parents[4]`). The code finds `.env` and `data/manifest.yaml` from it. So the commands work from any working folder.
 - **`env_ignore_empty=True`.** An empty value, such as `CHAT_MODEL=`, counts as "not set". The default applies. This is why `.env.example` can list every variable with no value.
 - **`extra="ignore"`.** Unknown variables in `.env` do not cause an error.
 - **A missing `.env` is not an error.** In Cloud Run, all values come from the environment.
@@ -365,7 +370,7 @@ Important details:
 ### 4.3 The collection name
 
 ```python
-# settings.py:38
+# config/settings.py:54
 f"{self.app_env}-{self.chunking_version}-{self.embedding_model}"
 # for example: prod-chunking_v2-text-embedding-3-small
 ```
@@ -672,7 +677,7 @@ Stable IDs make log lines comparable across ingestions. The chat log records the
 
 ### 6.6 Indexing
 
-`rebuild_index` (`ingestion/index.py`) calls `QdrantVectorStore.from_documents` with:
+`rebuild_index` (`integrations/qdrant.py`) calls `QdrantVectorStore.from_documents` with:
 
 - `page_content` = the chunk text (header and body),
 - `metadata` = `ChunkMetadata` as JSON,
@@ -950,14 +955,14 @@ The rate limiter runs **after** FastAPI validates the body. So an invalid reques
 
 | Constant | Value | File | Meaning | Trade-off |
 | --- | --- | --- | --- | --- |
-| `RETRIEVAL_K` (setting) | 3 | `settings.py` | Chunks sent to the model | More chunks give better recall but more cost and more noise. With `chunking_v2`, 3 chunks are usually under 1,500 input tokens, up to about 2,700 when they hold long tables. |
-| `RETRIEVAL_SCORE_THRESHOLD` (setting) | 0.65 | `settings.py` | Lowest relevance a chunk needs to reach the model | Higher stops more off-topic questions before the model call, but can drop the only chunk for a vaguely worded HR question. On `chunking_v2`, off-topic probes scored at most about 0.60 and in-scope eval questions at least about 0.70. Tune it against the evals. |
-| `HISTORY_TURNS` (setting) | 5 | `settings.py` | Messages of history in the prompt | More history gives better follow-ups but more cost. |
-| `PROMPT_VERSION` | `v7` | `prompt.py:8` | Written to each chat log line | Lets you compare logs before and after a prompt change. |
+| `RETRIEVAL_K` (setting) | 3 | `config/settings.py` | Chunks sent to the model | More chunks give better recall but more cost and more noise. With `chunking_v2`, 3 chunks are usually under 1,500 input tokens, up to about 2,700 when they hold long tables. |
+| `RETRIEVAL_SCORE_THRESHOLD` (setting) | 0.65 | `config/settings.py` | Lowest relevance a chunk needs to reach the model | Higher stops more off-topic questions before the model call, but can drop the only chunk for a vaguely worded HR question. On `chunking_v2`, off-topic probes scored at most about 0.60 and in-scope eval questions at least about 0.70. Tune it against the evals. |
+| `HISTORY_TURNS` (setting) | 5 | `config/settings.py` | Messages of history in the prompt | More history gives better follow-ups but more cost. |
+| `PROMPT_VERSION` | `v7` | `answering/prompt.py:9` | Written to each chat log line | Lets you compare logs before and after a prompt change. |
 
 ### 9.3 Retrieval: `QdrantRetriever`
 
-`QdrantRetriever` (`answering/adapters.py:15`) wraps LangChain's `QdrantVectorStore`.
+`QdrantRetriever` (`integrations/qdrant.py:32`) wraps LangChain's `QdrantVectorStore`.
 
 - **Query text.** The `Answerer` searches with the **Employee's last two messages**, oldest first, joined by a newline (`_retrieval_query` in `answering/answerer.py`). A reply to a Clarification, or a short follow-up such as "and for part-timers?", means little on its own. Assistant replies are left out, because a long reply would outweigh a short question in the query's embedding. (See the limit in [15.1](#151-retrieval-and-answer-quality).)
 - **Search type.** Similarity search with a score threshold (`similarity_score_threshold`): the top `k` chunks whose relevance is at least `RETRIEVAL_SCORE_THRESHOLD`. LangChain turns the cosine similarity into relevance as `(cosine + 1) / 2`, so the threshold is on that scale. An off-topic question can return no chunks at all. A payload filter keeps only chunks whose `metadata.status` is `current` ([ADR 0007](adr/0007-search-only-current-documents.md)); ingestion creates the keyword index Qdrant Cloud needs for it. There is no keyword search and no reranker.
@@ -970,7 +975,7 @@ The rate limiter runs **after** FastAPI validates the body. So an invalid reques
 
 ### 9.4 The prompt
 
-`build_prompt` (`answering/prompt.py:59`) makes a list of LangChain messages:
+`build_prompt` (`answering/prompt.py:24`) makes a list of LangChain messages:
 
 ```mermaid
 flowchart TB
@@ -1016,7 +1021,7 @@ Design choices in the prompt:
 
 ### 9.5 Generation: `OpenAIChatModel`
 
-`OpenAIChatModel` (`answering/adapters.py:48`) builds a LangChain runnable once, at start-up:
+`OpenAIChatModel` (`integrations/openai.py:11`) builds a LangChain runnable once, at start-up:
 
 ```python
 init_chat_model(settings.chat_model, model_provider="openai",
@@ -1234,13 +1239,13 @@ Production has tracing on, with the project `hr-assist-prod`. The UI tells visit
 
 | Test file | Level | What it proves |
 | --- | --- | --- |
-| `test_chat_api.py` | API, through `TestClient`, with fakes | Request rules, Response Types, Citation building, renumbering, snippets, prompt content, history limits, 503 mapping, no caching |
-| `test_rate_limit_api.py` | API, with `FakeClock` | Each limit and its message, `Retry-After`, per-IP buckets, `X-Forwarded-For` rules, invalid requests not counted, health not limited, log lines |
-| `test_health_api.py` | API | `ok` and `degraded`, request ID rules, CORS origin, no caching of preflights |
-| `test_error_format.py` | API | One error shape for 422, 503 and 500; the cause is logged and hidden |
-| `test_chat_model_adapter.py` | Unit | The output token cap and its setting |
-| `test_manifest.py` | Unit | Valid and invalid manifest entries |
-| `test_ingestion.py` | Integration, with the **real** documents | Table 3.1 is one chunk; tables are never split; headers and footers are removed; pages are correct; contents pages give no chunks; deck slides keep notes; a wrong manifest version fails |
+| `api/test_chat.py` | API, through `TestClient`, with fakes | Request rules, Response Types, Citation building, renumbering, snippets, prompt content, history limits, 503 mapping, no caching |
+| `api/test_rate_limit.py` | API, with `FakeClock` | Each limit and its message, `Retry-After`, per-IP buckets, `X-Forwarded-For` rules, invalid requests not counted, health not limited, log lines |
+| `api/test_health.py` | API | `ok` and `degraded`, request ID rules, CORS origin, no caching of preflights |
+| `api/test_errors.py` | API | One error shape for 422, 503 and 500; the cause is logged and hidden |
+| `integrations/test_openai.py` | Unit | The output token cap and its setting |
+| `corpus/test_manifest.py` | Unit | Valid and invalid manifest entries |
+| `ingestion/test_pipeline.py` | Integration, with the **real** documents | Table 3.1 is one chunk; tables are never split; headers and footers are removed; pages are correct; contents pages give no chunks; deck slides keep notes; a wrong manifest version fails |
 
 The tests that matter most use the real Corpus. For example, `test_section_3_1_of_the_leave_standard_is_one_chunk_holding_table_3_1` checks the exact rows of the real table. A change to the parser or chunker that breaks a real table fails CI.
 
@@ -1261,7 +1266,7 @@ CI runs the same commands on each pull request and each push to `main`. CI also 
 
 ### 11.3 A hidden network dependency
 
-`StructureV1` calls `tiktoken.get_encoding("o200k_base")`. On the first call, `tiktoken` downloads the encoding file from the internet and caches it. So `test_ingestion.py` and `hr-assist ingest` need internet access the first time on a new machine. In a sandbox that blocks this download, 24 ingestion tests fail with a proxy error, and the other 61 tests pass. The README says "no network needed", which is true only after the cache exists. To work fully offline, set `TIKTOKEN_CACHE_DIR` to a folder that already holds the file.
+`StructureV1` calls `tiktoken.get_encoding("o200k_base")`. On the first call, `tiktoken` downloads the encoding file from the internet and caches it. So `ingestion/test_pipeline.py` and `hr-assist ingest` need internet access the first time on a new machine. In a sandbox that blocks this download, 24 ingestion tests fail with a proxy error, and the other 61 tests pass. The README says "no network needed", which is true only after the cache exists. To work fully offline, set `TIKTOKEN_CACHE_DIR` to a folder that already holds the file.
 
 ### 11.4 What the tests do not cover
 
@@ -1485,9 +1490,9 @@ The README lists the main product limits. This section repeats them and adds gap
 
 ### 16.5 Change the prompt
 
-1. Edit `_SYSTEM` in `answering/prompt.py`.
+1. Edit `prompts/answer.md`. `{as_of_date}` and `{sources}` are filled in by `build_prompt`, so keep them, and write any other literal brace as `{{` or `}}`.
 2. Increase `PROMPT_VERSION`, for example to `v6`. Each chat log line then shows which prompt made the reply.
-3. Update the tests that check prompt text (`test_the_prompt_*` in `test_chat_api.py`).
+3. Update the tests that check prompt text (`test_the_prompt_*` in `tests/api/test_chat.py`).
 
 ### 16.6 Add an endpoint
 
@@ -1569,10 +1574,12 @@ Record a full pipeline eval run, then build the application eval ([evals guide](
 
 | File | Purpose |
 | --- | --- |
-| `settings.py` | `Settings` (all configuration), `REPO_ROOT`, `collection_name`. |
+| `config/settings.py` | `Settings` (all configuration), `REPO_ROOT`, `collection_name`. |
 | `errors.py` | `UpstreamError`, raised when Qdrant or OpenAI fails. |
-| `vector_store.py` | `VectorStore` Protocol and `QdrantVectorStore` for the health check (async client). |
-| `tracing.py` | Exports LangSmith settings to the environment. |
+| `integrations/openai.py` | `OpenAIChatModel`. |
+| `integrations/qdrant.py` | `QdrantRetriever`, `QdrantVectorStore` for the health check (async client), and `rebuild_index`: embed and recreate the collection. |
+| `integrations/langsmith.py` | Exports LangSmith settings to the environment. |
+| `prompts/answer.md` | The system prompt text. |
 | `cli.py` | The `hr-assist ingest` command. |
 | `corpus/manifest.py` | `ManifestEntry`, `load_manifest`, `ManifestError`, document kind and status types. |
 | `corpus/chunk.py` | `Chunk` and `ChunkMetadata`, the contract between ingestion and answering. |
@@ -1580,14 +1587,12 @@ Record a full pipeline eval run, then build the application eval ([evals guide](
 | `ingestion/normaliser.py` | Manifest-to-file checks and removal of headers and footers. |
 | `ingestion/chunking.py` | `ChunkingStrategy` Protocol, `StructureV1`, `StructureV2` and `STRATEGIES`. |
 | `ingestion/pipeline.py` | `build_chunks`: parse, check, normalise and chunk each entry. |
-| `ingestion/index.py` | `rebuild_index`: embed and recreate the Qdrant collection. |
 | `answering/models.py` | `ChatRequest`, `ChatMessage`, `ChatResponse`, `Citation`, `AssistantReply`, `GeneratedReply`. |
-| `answering/prompt.py` | The system prompt, `PROMPT_VERSION` and `build_prompt`. |
+| `answering/prompt.py` | Loads the system prompt, `PROMPT_VERSION` and `build_prompt`. |
 | `answering/answerer.py` | `Answerer`, `Retriever` and `ChatModel` Protocols, renumbering, Citations, snippets. |
-| `answering/adapters.py` | `QdrantRetriever` and `OpenAIChatModel`. |
 | `api/app.py` | `create_app`, the composition root. |
 | `api/chat.py` | `POST /api/chat` and `client_ip`. |
-| `api/health.py` | `GET /api/health`. |
+| `api/health.py` | `GET /api/health` and the `VectorStore` Protocol. |
 | `api/rate_limit.py` | `RateLimiter`, `RateLimited`, `Clock`. |
 | `api/errors.py` | Error envelope, exception handlers, `InternalErrorMiddleware`. |
 | `api/request_id.py` | `RequestIdMiddleware`, log filter, `configure_logging`. |

@@ -5,14 +5,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from hr_assist.answering import Answerer, ChatModel, Retriever
-from hr_assist.answering.adapters import OpenAIChatModel, QdrantRetriever
 from hr_assist.api import chat, health
 from hr_assist.api.errors import InternalErrorMiddleware, register_error_handlers
+from hr_assist.api.health import VectorStore
 from hr_assist.api.rate_limit import Clock, RateLimiter, utc_now
 from hr_assist.api.request_id import REQUEST_ID_HEADER, RequestIdMiddleware, configure_logging
-from hr_assist.settings import Settings
-from hr_assist.tracing import configure_tracing
-from hr_assist.vector_store import QdrantVectorStore, VectorStore
+from hr_assist.config.settings import Settings
+from hr_assist.integrations.langsmith import configure_tracing
+from hr_assist.integrations.openai import OpenAIChatModel
+from hr_assist.integrations.qdrant import QdrantRetriever, QdrantVectorStore
 
 
 def create_app(

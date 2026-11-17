@@ -8,8 +8,8 @@ from fastapi.testclient import TestClient
 from hr_assist.answering import AssistantReply
 from hr_assist.answering.answerer import OUT_OF_SCOPE_MESSAGE
 from hr_assist.api import UpstreamError, create_app
+from hr_assist.config.settings import Settings
 from hr_assist.corpus import Chunk, ChunkMetadata
-from hr_assist.settings import Settings
 
 QUESTION = (
     "How many days of annual leave does a full-time employee with less than 3 years' "

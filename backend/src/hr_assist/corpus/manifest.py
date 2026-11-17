@@ -5,7 +5,7 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from hr_assist.settings import REPO_ROOT
+from hr_assist.config.settings import REPO_ROOT
 
 DocumentKind = Literal["policy_document", "summary_deck", "test_fixture"]
 DocumentStatus = Literal["current", "superseded"]

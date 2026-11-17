@@ -4,8 +4,8 @@ import pytest
 from langchain_core.messages import BaseMessage
 
 from hr_assist.answering import AssistantReply, GeneratedReply
+from hr_assist.config.settings import Settings
 from hr_assist.corpus import Chunk, ChunkMetadata
-from hr_assist.settings import Settings
 
 
 class FakeVectorStore:

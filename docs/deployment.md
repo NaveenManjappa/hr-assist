@@ -233,7 +233,7 @@ flowchart TB
     SM -- "values injected as env vars<br/>when an instance starts" --> RSA
 ```
 
-- **Nothing changes in the backend code.** `Settings` in [settings.py](../backend/src/hr_assist/settings.py) already reads environment variables, and it ignores a missing `.env` file.
+- **Nothing changes in the backend code.** `Settings` in [config/settings.py](../backend/src/hr_assist/config/settings.py) already reads environment variables, and it ignores a missing `.env` file.
 - **Changing a key.** Add a new version of the secret in Secret Manager, then redeploy, or deploy a new revision from the console. Running instances keep the old value until they restart, because env vars are read when an instance starts.
 - **`QDRANT_URL` isn't secret.** On its own it's useless without the API key, so it's a plain env var.
 - **The one key in GitHub** belongs to the deploy service account, which can only deploy this one project. See [ADR 0004](adr/0004-service-account-key-before-wif.md) for why it's a key for now and how to remove it later.

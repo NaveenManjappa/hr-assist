@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request
 
 from hr_assist.answering import Answerer, ChatRequest, ChatResponse
 from hr_assist.api.rate_limit import RateLimiter
-from hr_assist.settings import Settings
+from hr_assist.config.settings import Settings
 
 router = APIRouter()
 logger = logging.getLogger("hr_assist.rate_limit")
