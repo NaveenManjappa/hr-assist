@@ -285,26 +285,6 @@ class FailingRetriever(FakeRetriever):
         raise UpstreamError("Qdrant timed out")
 
 
-@pytest.mark.parametrize(
-    ("body", "retriever", "status"),
-    [
-        (ask(), FakeRetriever([ENTITLEMENT]), 200),
-        ({"messages": []}, FakeRetriever([ENTITLEMENT]), 422),
-        (ask(), FailingRetriever([]), 503),
-    ],
-    ids=["answered", "invalid", "upstream-failure"],
-)
-def test_chat_responses_are_never_cached(
-    settings: Settings, body: dict[str, Any], retriever: FakeRetriever, status: int
-) -> None:
-    reply = AssistantReply(response_type="answer", message="27 days.")
-
-    response = chat(settings, reply, body, retriever)
-
-    assert response.status_code == status
-    assert response.headers["cache-control"] == "no-store"
-
-
 def test_a_summary_deck_citation_carries_its_slide_instead_of_pages(settings: Settings) -> None:
     reply = AssistantReply(
         response_type="answer",

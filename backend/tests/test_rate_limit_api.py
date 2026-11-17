@@ -65,7 +65,6 @@ def test_the_21st_chat_in_a_minute_is_rejected_until_the_minute_has_passed(
         }
     }
     assert rejected.headers["retry-after"] == "30"
-    assert rejected.headers["cache-control"] == "no-store"
 
     clock.advance(seconds=30)
     assert ask_from(client, "203.0.113.7")[0].status_code == 200

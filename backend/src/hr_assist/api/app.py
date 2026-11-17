@@ -8,7 +8,6 @@ from hr_assist.answering import Answerer, ChatModel, Retriever
 from hr_assist.answering.adapters import OpenAIChatModel, QdrantRetriever
 from hr_assist.api import chat, health
 from hr_assist.api.errors import InternalErrorMiddleware, register_error_handlers
-from hr_assist.api.no_store import NoStoreMiddleware
 from hr_assist.api.rate_limit import Clock, RateLimiter, utc_now
 from hr_assist.api.request_id import REQUEST_ID_HEADER, RequestIdMiddleware, configure_logging
 from hr_assist.settings import Settings
@@ -61,8 +60,6 @@ def create_app(
         allow_headers=["Content-Type", REQUEST_ID_HEADER],
         expose_headers=[REQUEST_ID_HEADER],
     )
-    # Outermost, so CORS preflight answers are marked too.
-    app.add_middleware(NoStoreMiddleware)
     app.include_router(health.router)
     app.include_router(chat.router)
     return app

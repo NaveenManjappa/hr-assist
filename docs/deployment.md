@@ -117,7 +117,7 @@ sequenceDiagram
         C->>Q: top k similar current chunks (default 3)
         C->>O: one structured-output call (max 5000 output tokens)
         O-->>C: Response Type, message, cited sources
-        C-->>F: 200 ChatResponse (Cache-Control: no-store)
+        C-->>F: 200 ChatResponse
         F-->>B: 200, UI renders the Answer and its Citations
     end
 ```

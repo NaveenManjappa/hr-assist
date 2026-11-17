@@ -50,7 +50,6 @@ def test_unexpected_failures_use_the_shared_format_with_500(settings: Settings) 
             "request_id": response.headers["x-request-id"],
         }
     }
-    assert response.headers["cache-control"] == "no-store"
 
 
 def test_validation_errors_use_the_shared_format_with_422(settings: Settings) -> None:

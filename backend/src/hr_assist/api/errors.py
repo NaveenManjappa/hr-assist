@@ -59,7 +59,7 @@ class InternalErrorMiddleware:
     """Answers an unhandled exception with a 500 in the shared format.
 
     It runs inside the other middleware, unlike Starlette's own 500 handler, so the
-    response still gets its request ID, CORS and Cache-Control headers.
+    response still gets its request ID and CORS headers.
     """
 
     def __init__(self, app: ASGIApp) -> None:

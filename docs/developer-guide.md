@@ -215,7 +215,7 @@ flowchart TB
         APP["app.py<br/>create_app"]
         CHAT["chat.py"]
         HEALTH["health.py"]
-        MW["request_id.py, no_store.py,<br/>errors.py, rate_limit.py"]
+        MW["request_id.py, errors.py,<br/>rate_limit.py"]
     end
     subgraph answering["answering/ (RAG layer)"]
         ANS["answerer.py<br/>Answerer + Protocols"]
@@ -746,23 +746,21 @@ flowchart TB
     REQ(["HTTP request"]) --> SEM
     subgraph STACK["Request passes down, response passes up"]
         SEM["Starlette ServerErrorMiddleware<br/>(built in, last resort)"]
-        NS["NoStoreMiddleware<br/>Cache-Control: no-store on /api/*"]
         CORS["CORSMiddleware<br/>allows FRONTEND_ORIGIN only"]
         RID["RequestIdMiddleware<br/>X-Request-ID, access log line"]
         IEM["InternalErrorMiddleware<br/>unhandled exception → 500 JSON"]
         EXC["ExceptionMiddleware<br/>422, 429, 503 handlers"]
         ROUTER["Router → /api/health, /api/chat"]
-        SEM --> NS --> CORS --> RID --> IEM --> EXC --> ROUTER
+        SEM --> CORS --> RID --> IEM --> EXC --> ROUTER
     end
 ```
 
 Why this order matters:
 
-- **`NoStoreMiddleware` is outermost** (after Starlette's own layer). So it marks CORS preflight replies as well. A CDN never caches any API reply, even an error.
 - **`InternalErrorMiddleware` is inside `RequestIdMiddleware` and `CORSMiddleware`.** A 500 reply passes back through them. So it still gets its `X-Request-ID` and CORS headers. Starlette's built-in 500 handler is outermost, so its reply gets none of these headers. That is why the project has its own layer.
 - **The exception handlers are innermost.** They convert known exceptions to JSON replies before any middleware sees them.
 
-All four custom middlewares are **pure ASGI** classes, not `BaseHTTPMiddleware`. Pure ASGI middleware has less overhead and does not break context variables such as `request_id_var`.
+Both custom middlewares are **pure ASGI** classes, not `BaseHTTPMiddleware`. Pure ASGI middleware has less overhead and does not break context variables such as `request_id_var`.
 
 ---
 
@@ -897,7 +895,6 @@ A 503 reply never contains the original exception text. The text can contain int
 | Header | Direction | Behaviour |
 | --- | --- | --- |
 | `X-Request-ID` | Request and response | If the client sends a valid ID (1 to 64 characters of `A-Z a-z 0-9 . _ -`), the server keeps it. Else the server makes a new UUID. Every response has it. CORS exposes it to the browser. |
-| `Cache-Control: no-store` | Response | On every `/api/*` response, errors and preflights included. |
 | `Retry-After` | Response | On 429 only. Whole seconds, at least 1. |
 | `X-Forwarded-For` | Request | Read to find the client IP for rate limiting. |
 | CORS headers | Response | Only for `FRONTEND_ORIGIN`. Methods `GET` and `POST`. Request headers `Content-Type` and `X-Request-ID`. |
@@ -1152,7 +1149,7 @@ The incoming ID is validated with `^[A-Za-z0-9._-]{1,64}$`. This stops a client 
 
 ### 10.3 Caching
 
-`NoStoreMiddleware` adds `Cache-Control: no-store` to every `/api/*` response. Firebase Hosting is a CDN. A CDN that caches a chat reply could show one visitor's answer to a different visitor. `no-store` prevents that.
+API responses carry no `Cache-Control` header. Firebase Hosting treats dynamic content without one as `private`, so its CDN never caches a chat reply or shows one visitor's answer to another. Don't add a caching header (`public`, `max-age`, `s-maxage`) to an `/api/*` response.
 
 `firebase.json` sets `Cache-Control: no-cache` on `index.html`, so browsers always get the newest app after a deploy. The other front-end files have hashed names, so normal caching is safe for them.
 
@@ -1495,7 +1492,7 @@ The README lists the main product limits. This section repeats them and adds gap
 ### 16.6 Add an endpoint
 
 1. Add a router module in `api/`, with Pydantic models for the request and the response.
-2. Put it under `/api/`, so that Firebase forwards it and `NoStoreMiddleware` covers it.
+2. Put it under `/api/`, so that Firebase forwards it.
 3. Include the router in `create_app`.
 4. Raise `UpstreamError` for dependency failures. The shared error envelope then applies.
 5. Add API tests with fakes.
@@ -1594,7 +1591,6 @@ Record a full pipeline eval run, then build the application eval ([evals guide](
 | `api/rate_limit.py` | `RateLimiter`, `RateLimited`, `Clock`. |
 | `api/errors.py` | Error envelope, exception handlers, `InternalErrorMiddleware`. |
 | `api/request_id.py` | `RequestIdMiddleware`, log filter, `configure_logging`. |
-| `api/no_store.py` | `NoStoreMiddleware`. |
 
 ### Other files
 
