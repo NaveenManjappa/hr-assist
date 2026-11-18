@@ -1,0 +1,1583 @@
+{
+  "run_at": "2026-11-18T17:31:19+00:00",
+  "deepeval_run_file": "test_run_20261118_173412.json",
+  "judge_cost_usd": 0.0841,
+  "generator_tokens": {
+    "input_tokens": 116242,
+    "output_tokens": 17970,
+    "total_tokens": 134212
+  },
+  "hyperparameters": {
+    "chat_model": "gpt-6-luna",
+    "reasoning_effort": "medium",
+    "max_output_tokens": 5000,
+    "prompt_version": "v7",
+    "chunking_version": "chunking_v2",
+    "judge_model": "gpt-6-luna",
+    "goldens_file": "goldens_v1.jsonl",
+    "goldens_sha256": "663ebea5497fc53ac5662947ada41200b983afe5436d6c15c91013a006f2891a",
+    "goldens_used": 89
+  },
+  "non_answers": [
+    "NDS-EVAL-014",
+    "NDS-EVAL-032"
+  ],
+  "generation_errors": [],
+  "means": {
+    "overall": {
+      "questions": 89,
+      "Faithfulness": 0.9581,
+      "Answer Relevancy": 0.9697
+    },
+    "conditional_eligibility": {
+      "questions": 13,
+      "Faithfulness": 0.8885,
+      "Answer Relevancy": 0.9231
+    },
+    "cross_document": {
+      "questions": 13,
+      "Faithfulness": 0.9744,
+      "Answer Relevancy": 1.0
+    },
+    "factual_retrieval": {
+      "questions": 14,
+      "Faithfulness": 0.9679,
+      "Answer Relevancy": 1.0
+    },
+    "multi_hop": {
+      "questions": 13,
+      "Faithfulness": 1.0,
+      "Answer Relevancy": 1.0
+    },
+    "numerical_calculation": {
+      "questions": 14,
+      "Faithfulness": 1.0,
+      "Answer Relevancy": 1.0
+    },
+    "semantic_paraphrase": {
+      "questions": 11,
+      "Faithfulness": 0.8636,
+      "Answer Relevancy": 0.9091
+    },
+    "table_extraction": {
+      "questions": 11,
+      "Faithfulness": 1.0,
+      "Answer Relevancy": 0.9364
+    }
+  },
+  "questions": [
+    {
+      "question_id": "NDS-EVAL-001",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "A full-time employee with less than 3 years’ service receives 27 days of annual leave per year. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1502,
+        "output_tokens": 129,
+        "total_tokens": 1631
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-002",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "Report it by 09:30 on the first day. Shift and on-call workers must report at least 1 hour before their shift or rota period starts. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1261,
+        "output_tokens": 115,
+        "total_tokens": 1376
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-003",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "Submit expense claims within 30 calendar days of the expense date. For multi-day trips, submit all trip expenses together within 30 calendar days of the first expense. [1] Claims submitted 31–90 days late need a written explanation and Head of Department approval; claims submitted more than 90 days late are not reimbursed unless the Finance Director approves an exception. [2][1] Leavers must submit claims within 10 working days after their leaving date. [2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1127,
+        "output_tokens": 467,
+        "total_tokens": 1594
+      },
+      "scores": {
+        "Faithfulness": 0.8,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-004",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "The Hybrid and Flexible Working Standard is owned by the Head of Workplace Experience. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1220,
+        "output_tokens": 92,
+        "total_tokens": 1312
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-005",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "The Leave and Absence Standard (NDS-HR-LAS-002 v1.2) is currently in force, effective 1 October 2026. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 909,
+        "output_tokens": 113,
+        "total_tokens": 1022
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-006",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "Probation lasts 6 months from the employee’s start date. [1] It may be extended once, by up to 3 months, if more time is needed to assess performance or absence has affected the assessment; the extension must be confirmed in writing before the original probation end date. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1215,
+        "output_tokens": 119,
+        "total_tokens": 1334
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-007",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "The standard full-time week is 37.5 hours, Monday to Friday, with 7.5 hours per day excluding a 60-minute unpaid lunch. The standard day is 09:00–17:30, with flexible start and finish times from 07:30 to 19:00. [1] Core hours are 10:00–16:00. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 974,
+        "output_tokens": 148,
+        "total_tokens": 1122
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-008",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "Salary is paid on the 25th of each month. If the 25th falls on a weekend or bank holiday, it is paid on the previous working day. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 879,
+        "output_tokens": 59,
+        "total_tokens": 938
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-009",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "Report it to the IT Service Desk immediately, and no later than 1 hour after discovering it. [1] If it was stolen, report the theft to police within 24 hours and add the crime reference number to the IT ticket. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 970,
+        "output_tokens": 146,
+        "total_tokens": 1116
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-010",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "Passwords must be at least 14 characters. [1][2] MFA is mandatory for all Northstar systems. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1086,
+        "output_tokens": 89,
+        "total_tokens": 1175
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-011",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "An employee can make up to 2 statutory flexible-working requests in any 12-month period. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1267,
+        "output_tokens": 91,
+        "total_tokens": 1358
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-012",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "The annual learning budget is £1,000 per employee per financial year (1 April to 31 March). [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1082,
+        "output_tokens": 67,
+        "total_tokens": 1149
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-013",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "The 2026 company shutdown is Tuesday 29 to Thursday 31 December 2026. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1021,
+        "output_tokens": 72,
+        "total_tokens": 1093
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-014",
+      "category": "semantic_paraphrase",
+      "response_type": "clarification",
+      "message": "What date in November will you start, and how much continuous service will you have completed by then?",
+      "cited_sources": 0,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1535,
+        "output_tokens": 221,
+        "total_tokens": 1756
+      },
+      "scores": {
+        "Faithfulness": 0.0,
+        "Answer Relevancy": 0.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-015",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "Call your line manager by 09:30 on your first day off sick. If you work shifts or are on an on-call rota, call at least 1 hour before your shift or rota period starts. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1042,
+        "output_tokens": 144,
+        "total_tokens": 1186
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-016",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "Yes. You can carry over up to 5 days (37.5 hours for full-time employees, pro-rated for part-time) without approval, and must use them by 31 March of the next leave year. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1193,
+        "output_tokens": 286,
+        "total_tokens": 1479
+      },
+      "scores": {
+        "Faithfulness": 0.5,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-017",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "No. For three calendar days off sick, complete a self-certification form in PeopleHub on the day you return; a fit note is not normally required. [1] If you’re at Stage 1 or above for repeated short-term absence, Northstar may request a fit note. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1109,
+        "output_tokens": 151,
+        "total_tokens": 1260
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-018",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "After completing probation, you can claim up to £300 (including VAT) once in any 3-year period for a desk, chair or other ergonomic equipment. Submit receipts through ExpenseFlow. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 922,
+        "output_tokens": 109,
+        "total_tokens": 1031
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-019",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "Yes, but only with public information. Never use a free chatbot for Northstar files or Internal, Confidential, or personal data, and don’t sign in with Northstar credentials. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1948,
+        "output_tokens": 117,
+        "total_tokens": 2065
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-020",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "You can take a reasonable amount of time off to deal with the immediate disruption and arrange alternative care. Northstar pays up to 2 working days for this occurrence, within a maximum of 5 paid days per leave year; further time is unpaid, or you can use annual leave. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1164,
+        "output_tokens": 191,
+        "total_tokens": 1355
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-021",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "You can claim 55p per business mile for the first 10,000 business miles in the tax year, then 25p per mile after that. Only business miles are claimable. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1085,
+        "output_tokens": 196,
+        "total_tokens": 1281
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-022",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "No. Your request is not approved by default if your manager doesn’t respond. [1] Within 5 working days of submission, the request is automatically escalated to the Head of Department if there’s still no decision. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1113,
+        "output_tokens": 132,
+        "total_tokens": 1245
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-023",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "Yes. You can take annual leave in whole-hour blocks, with a 1-hour minimum, up to 37.5 hours of your annual allowance per leave year (pro-rated if part-time). Hourly leave counts against your allowance. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 952,
+        "output_tokens": 131,
+        "total_tokens": 1083
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-024",
+      "category": "semantic_paraphrase",
+      "response_type": "answer",
+      "message": "You can raise it with your line manager or Head of Department, the Head of Risk and Compliance at compliance@northstar.example, speakup@northstar.example, or the independent Speak Up line. [1] The Speak Up line accepts anonymous reports and is available 24/7 by web form and telephone via the intranet. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 997,
+        "output_tokens": 144,
+        "total_tokens": 1141
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-025",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "No. During probation, your entitlement is SSP only, not company sick pay. [1] SSP is payable from the first day of sickness if you meet the statutory conditions; your contracted working days are the qualifying days. [2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1482,
+        "output_tokens": 224,
+        "total_tokens": 1706
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-026",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "With 4 years’ service, you may get 8 weeks at full pay, then 8 weeks at half pay in a rolling 12-month period. [1] Previous company sick pay in that period is deducted; company sick pay is inclusive of SSP and requires an eligible contract and compliance with the reporting and evidence rules. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1287,
+        "output_tokens": 157,
+        "total_tokens": 1444
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-027",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "Yes, if you expect to have responsibility for the child’s upbringing; you can take up to 2 weeks of paternity leave. [1] Since you joined only 2 months before the due date, you won’t meet the 26-week service requirement for Statutory Paternity Pay, so the leave will be unpaid. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1159,
+        "output_tokens": 269,
+        "total_tokens": 1428
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-028",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "No. You’re not eligible to work from abroad until you’ve completed probation. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1504,
+        "output_tokens": 104,
+        "total_tokens": 1608
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-029",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "You must qualify for Statutory Maternity Pay and have at least 26 weeks of continuous service at the end of the 15th week before your expected week of childbirth. [1]\n\n- Weeks 1–16: full basic pay, inclusive of SMP.\n- Weeks 17–39: SMP only.\n- Weeks 40–52: unpaid. [1]\n\nIf you do not return to work for at least 6 months after maternity leave, you must repay the enhanced amount above SMP, unless an exception applies. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1298,
+        "output_tokens": 227,
+        "total_tokens": 1525
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-030",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "Yes, if you have Head of Department pre-approval. First class is also permitted as a reasonable adjustment. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 906,
+        "output_tokens": 98,
+        "total_tokens": 1004
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-031",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "Yes, you could apply. If your service is continuous, you’ll have about 5 years and 2 months by 13 December 2027, and a 2-month sabbatical is within the permitted 1–3 months. [1] Apply at least 3 months before your start date; approval is discretionary and depends on business needs. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1750,
+        "output_tokens": 391,
+        "total_tokens": 2141
+      },
+      "scores": {
+        "Faithfulness": 0.8,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-032",
+      "category": "conditional_eligibility",
+      "response_type": "clarification",
+      "message": "Which year was your June resignation and July bonus payment?",
+      "cited_sources": 0,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 953,
+        "output_tokens": 517,
+        "total_tokens": 1470
+      },
+      "scores": {
+        "Faithfulness": 0.0,
+        "Answer Relevancy": 0.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-033",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "Yes. A taxi journey at 22:30 is reimbursable up to £50; a fare above £50 needs Head of Department approval. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 947,
+        "output_tokens": 227,
+        "total_tokens": 1174
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-034",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "Yes, but only under an exception. [1]\n- Sickness absence: up to 4 weeks (20 days full-time, pro-rated) in addition to the standard 5 days, with evidence; use it within 18 months after the leave year ends. [1]\n- Family-related leave: all untaken annual leave for the leave year carries over; use it within 12 months of returning to work. [1]\n- Exceptional business reasons: up to 10 days total, if you request by 30 November and the Director of People Operations approves; use it by 30 June of the next leave year. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1197,
+        "output_tokens": 344,
+        "total_tokens": 1541
+      },
+      "scores": {
+        "Faithfulness": 0.75,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-035",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "You can claim it only after completing probation. If you’ve completed probation, you may claim up to £300 (including VAT), once in any 3-year period, with receipts through ExpenseFlow. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 930,
+        "output_tokens": 159,
+        "total_tokens": 1089
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-036",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "No. G4 employees receive TOIL only, hour for hour; they do not receive paid overtime.[1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1157,
+        "output_tokens": 77,
+        "total_tokens": 1234
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-037",
+      "category": "conditional_eligibility",
+      "response_type": "answer",
+      "message": "No. You must decline gifts of any value from a supplier while you’re negotiating a contract with them. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1048,
+        "output_tokens": 80,
+        "total_tokens": 1128
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-038",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "Potentially. A week can fit within the 10-working-day rolling 12-month limit, but Italy must not be on the restricted-destination list, and you must meet the eligibility rules and stay available during UK core hours. [1]\nSubmit the PeopleHub request at least 4 weeks before travel and obtain approval from your line manager, People Operations and IT Security. [1]\nBecause you handle Restricted data, you must not access it from Italy unless the CISO approves in writing and the customer contract permits access from outside the UK. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1595,
+        "output_tokens": 457,
+        "total_tokens": 2052
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-039",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "The 5 days of approved leave after your leaving date are cancelled automatically.[1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1854,
+        "output_tokens": 95,
+        "total_tokens": 1949
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-040",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "Possibly, but leave during a published critical delivery period requires both line manager and Head of Department approval and is normally approved only in exceptional circumstances. [1][2] If you mean 3 working days, the usual minimum notice is 10 working days; shorter notice may be approved at the manager’s discretion. [3]",
+      "cited_sources": 3,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1670,
+        "output_tokens": 463,
+        "total_tokens": 2133
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-041",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "Your allowance is calculated separately for each working pattern, then combined: full-time, 1 January–30 June: 262.5 × 181/365 = 130.171 hours; 22.5 hours, 1 July–31 December: 157.5 × 184/365 = 79.397 hours. The total rounds up to **209.75 hours**. [1]\n\nAfter deducting 60 hours already taken and the 60 hours of bank holidays on your working days (37.5 hours before the change and 22.5 after), your bookable annual leave is **89.75 hours**. Of this, **7.5 hours must be reserved** for the shutdown day on Wednesday 29 December. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 2554,
+        "output_tokens": 439,
+        "total_tokens": 2993
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-042",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "Before booking, get Director pre-approval and a Travel desk travel-risk check for the international trip. Record the approval in ExpenseFlow as a “Travel and spend request” and quote its reference on your claim. [1]\nFor the cash taxi fare, claim in pounds using Finance’s published monthly exchange rate for the month you incurred the cost: euros ÷ the rate, rounded to the nearest penny. [2] The sources don’t specify whether taxi fares are reimbursable or what evidence to attach, so check with People Operations. [2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1617,
+        "output_tokens": 489,
+        "total_tokens": 2106
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-043",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "Tell your line manager about the sickness by 09:30 on your first day ill, or as soon as reasonably practicable if you’re in a different time zone. [1] Provide self-certification if you’re off sick for up to 7 calendar days, or a fit note if it’s more than 7 calendar days. [1] If the affected days are reclassified as sickness absence, they’ll be re-credited to your annual leave balance; days reported only after you return normally won’t be reclassified. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 999,
+        "output_tokens": 301,
+        "total_tokens": 1300
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-044",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "Return your equipment by Friday 27 November 2026, using the prepaid courier arranged by IT. You may post your access card with it. [1] Submit all expense claims by Friday 4 December 2026. [2] Your final holiday pay is scheduled with final adjustments for 25 December 2026. [3] The sources don’t specify when access is cut off; contact People Operations for that date.",
+      "cited_sources": 3,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1478,
+        "output_tokens": 759,
+        "total_tokens": 2237
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-045",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "You may end the meeting or leave the site if you feel unsafe, and you will not be penalised for doing so in good faith. [1] Report it to your line manager and People Operations within 1 hour. [2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1317,
+        "output_tokens": 139,
+        "total_tokens": 1456
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-046",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "No. Fit notes, diagnoses and other medical details must never be entered into any generative AI tool, including Northstar Assist. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1420,
+        "output_tokens": 285,
+        "total_tokens": 1705
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-047",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "Northstar must allow you time off for jury service. If your absence would seriously harm the business, it may ask you to apply to defer; jury service can be deferred only once in a 12-month period. [1]\nYou’ll receive full basic pay for the first 10 working days of jury service in the leave year. After that, Northstar pay is unpaid, and you may claim loss of earnings from the court. [1]\nTell your line manager and upload a copy of your summons to PeopleHub within 2 working days of receiving it. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 999,
+        "output_tokens": 228,
+        "total_tokens": 1227
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-048",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "During your first 4 weeks, you must attend at least 3 days per week. [1]\n\nIf you’re full-time, by 1 June you can book up to 9.0 days with line manager approval (7.0 accrued plus 2 additional days). More than 5 consecutive working days also needs Head of Department approval. [2]\n\nAfter completing probation, you can claim up to £300 including VAT for eligible home-office equipment, once in any 3-year period, with receipts through ExpenseFlow. [3]",
+      "cited_sources": 3,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1435,
+        "output_tokens": 992,
+        "total_tokens": 2427
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-049",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "No. Pregnancy-related sickness is excluded from attendance triggers. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1520,
+        "output_tokens": 72,
+        "total_tokens": 1592
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-050",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "You can book 112.5 hours of annual leave in 2027, after deducting 45 hours for bank holidays on your working days. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1824,
+        "output_tokens": 108,
+        "total_tokens": 1932
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-051",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "They get 23.0 days of annual leave for 2027, plus 7 bank holidays as paid days off. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1152,
+        "output_tokens": 142,
+        "total_tokens": 1294
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-052",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "The employee has 3.5 days of holiday remaining, so £612.50 gross is due in the final salary payment. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1134,
+        "output_tokens": 96,
+        "total_tokens": 1230
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-053",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "For an employee with less than 3 years’ service, bookable annual leave for 2027 is **191.75 hours**.[1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1537,
+        "output_tokens": 470,
+        "total_tokens": 2007
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-054",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "They receive £98.60 in SSP and no company sick pay. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1234,
+        "output_tokens": 98,
+        "total_tokens": 1332
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-055",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "They receive 13 weeks at full pay, then 2 weeks at half pay. [1] At £52,000, that is £1,000 per week for the first 13 weeks and £500 per week for weeks 14 and 15, totalling £1,000 for those final two weeks. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1234,
+        "output_tokens": 184,
+        "total_tokens": 1418
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-056",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "£342.00 is reimbursed. [1] The claim requires approval from your line manager and Head of Department. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1963,
+        "output_tokens": 105,
+        "total_tokens": 2068
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-057",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "You can claim **£45.00**: the first 50 miles at 55p per mile and the remaining 70 miles at 25p per mile. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1929,
+        "output_tokens": 107,
+        "total_tokens": 2036
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-058",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "No. You gave 9 working days’ notice, but 10 are required for 3 days off. It is short notice and may be approved only at your manager’s discretion. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1293,
+        "output_tokens": 131,
+        "total_tokens": 1424
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-059",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "As a full-time employee, you need **6 office days** in that 4-week period. [1]\n\nIf you work 3 days a week and also took 5 days of annual leave, you need **3 office days** in that period. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1012,
+        "output_tokens": 587,
+        "total_tokens": 1599
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-060",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "Northstar must give 9 weeks’ notice: the statutory minimum of 9 weeks is longer than the contractual 1 month for a G2 employee. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1165,
+        "output_tokens": 106,
+        "total_tokens": 1271
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-061",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "The statutory redundancy pay is £4,506: 6 years × 1 week’s pay per year × the £751 weekly cap. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1121,
+        "output_tokens": 107,
+        "total_tokens": 1228
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-062",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "They get 8.0 days of pro-rated annual leave for 2027, plus the 27 and 28 December bank holidays. Three days must be reserved for the 29–31 December shutdown. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1420,
+        "output_tokens": 159,
+        "total_tokens": 1579
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-063",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "A claim totalling £1,200 needs approval from your line manager, Head of Department and Director. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1019,
+        "output_tokens": 78,
+        "total_tokens": 1097
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-064",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "The hotel limit in Zurich is £300 per night. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1115,
+        "output_tokens": 58,
+        "total_tokens": 1173
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-065",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "Right-to-work check copies are kept for the duration of employment plus 2 years. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1212,
+        "output_tokens": 73,
+        "total_tokens": 1285
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-066",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "Internal. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1266,
+        "output_tokens": 42,
+        "total_tokens": 1308
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 0.5
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-067",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "A G5 employee must give 2 months’ contractual notice after probation when resigning. Your individual employment contract prevails if it specifies a different notice period. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1157,
+        "output_tokens": 104,
+        "total_tokens": 1261
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-068",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "At the end of month 3, there is a mid-point review. Any concerns are identified in writing, with support offered; People Operations is involved if concerns exist. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1211,
+        "output_tokens": 101,
+        "total_tokens": 1312
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-069",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "That is a Severity 3 — Medium incident. Report it within 1 hour. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1061,
+        "output_tokens": 75,
+        "total_tokens": 1136
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-070",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "The dinner limit in Paris is £45. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1116,
+        "output_tokens": 69,
+        "total_tokens": 1185
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-071",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "You may accept it, but you must record it in the gifts and hospitality register within 5 working days. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1049,
+        "output_tokens": 89,
+        "total_tokens": 1138
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-072",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "Recruitment records for unsuccessful candidates are kept for 6 months after the hiring decision. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1212,
+        "output_tokens": 75,
+        "total_tokens": 1287
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-073",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "You can carry over up to 22.5 hours under the standard rule. Use it by 31 March of the next leave year. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1730,
+        "output_tokens": 186,
+        "total_tokens": 1916
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-074",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Submit all outstanding expense claims within 10 working days after your leaving date. Claims received after that are not paid. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1133,
+        "output_tokens": 110,
+        "total_tokens": 1243
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-075",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Only in Northstar Assist, and only if the customer contract permits AI processing, the log contains no Restricted data, and you enter only the minimum needed. If it contains customer personal data, the customer must also have approved the tool; don’t use a public or consumer AI service. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 2007,
+        "output_tokens": 387,
+        "total_tokens": 2394
+      },
+      "scores": {
+        "Faithfulness": 0.6666666666666666,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-076",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "No. A business trip abroad at Northstar’s request for customer work does not count toward the 10 Work From Abroad days. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1376,
+        "output_tokens": 93,
+        "total_tokens": 1469
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-077",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Yes. You can claim an extra 5p per mile for each colleague carried on the same business journey. [1] Only business miles are claimable, and your normal commuting distance must be deducted from each leg that starts or ends at home. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1088,
+        "output_tokens": 121,
+        "total_tokens": 1209
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-078",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "No. Northstar pays ShPP only and does not enhance Shared Parental Pay. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 3403,
+        "output_tokens": 94,
+        "total_tokens": 3497
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-079",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "No. Home broadband is not reimbursable as part of hybrid working. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1176,
+        "output_tokens": 92,
+        "total_tokens": 1268
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-080",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Prompts in approved AI tools are kept for 90 days, then deleted, unless subject to a legal hold or investigation. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1347,
+        "output_tokens": 175,
+        "total_tokens": 1522
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-081",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Your manager must acknowledge the request within 5 working days and meet with you within 4 weeks of receiving it. [1][2]\nA written decision and any appeal must be completed within 2 months of receipt, unless you agree to an extension. You can appeal within 10 working days of the decision. [1][2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1525,
+        "output_tokens": 329,
+        "total_tokens": 1854
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-082",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Follow the current Leave and Absence Standard. An archived policy does not override a current policy. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1027,
+        "output_tokens": 173,
+        "total_tokens": 1200
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-083",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Hybrid employees get a laptop, one external monitor, a keyboard, a mouse and a headset. [1][2] These remain Northstar property and must be returned when the employee leaves. [2]",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1145,
+        "output_tokens": 224,
+        "total_tokens": 1369
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-119",
+      "category": "factual_retrieval",
+      "response_type": "answer",
+      "message": "The four headline numbers are 27 days’ annual leave for full-time staff, plus 8 bank holidays; 5 days of carryover, to be used by 31 March; 09:30 for reporting sickness; and 8 office or customer-site days in every rolling 4-week period for hybrid roles. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1080,
+        "output_tokens": 214,
+        "total_tokens": 1294
+      },
+      "scores": {
+        "Faithfulness": 0.75,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-120",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Yes. On 1 June 2027, the Standard gives 7.0 accrued days after rounding, plus up to 2 more with line manager approval: 9.0 days total. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1319,
+        "output_tokens": 283,
+        "total_tokens": 1602
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-122",
+      "category": "table_extraction",
+      "response_type": "answer",
+      "message": "MeetingScribe permits information classified up to Confidential. [1] It cannot be used in disciplinary, grievance, medical, Occupational Health or whistleblowing meetings, or in customer meetings without the customer’s written agreement. It must be announced at the start of the meeting. [1] I followed the policy because it prevails over the training deck. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1540,
+        "output_tokens": 493,
+        "total_tokens": 2033
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 0.8
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-123",
+      "category": "cross_document",
+      "response_type": "answer",
+      "message": "Follow the policy document. The training slide is only a summary, and the policy document prevails if they differ. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1138,
+        "output_tokens": 255,
+        "total_tokens": 1393
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-124",
+      "category": "multi_hop",
+      "response_type": "answer",
+      "message": "No. You can claim the £300 home office allowance only after completing probation [1]. You’re not eligible to work from abroad during probation, so you can’t work from Spain for a week yet [2].",
+      "cited_sources": 2,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1547,
+        "output_tokens": 186,
+        "total_tokens": 1733
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    },
+    {
+      "question_id": "NDS-EVAL-125",
+      "category": "numerical_calculation",
+      "response_type": "answer",
+      "message": "For 3 years’ service, company sick pay is 8 weeks at full pay, followed by 8 weeks at half pay in a rolling 12-month period; any company sick pay already used in that period is deducted. [1] I followed the Employee Handbook because it prevails over the manager briefing deck. [1]",
+      "cited_sources": 1,
+      "error": null,
+      "token_usage": {
+        "input_tokens": 1576,
+        "output_tokens": 269,
+        "total_tokens": 1845
+      },
+      "scores": {
+        "Faithfulness": 1.0,
+        "Answer Relevancy": 1.0
+      }
+    }
+  ]
+}
