@@ -32,6 +32,10 @@ from typing import Any
 # would switch on LangSmith tracing. Settings reads .env itself, so turn that off.
 os.environ.setdefault("DEEPEVAL_DISABLE_DOTENV", "1")
 os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "1")
+# DeepEval gives the whole batch one deadline: one case's budget plus this buffer, about 207s
+# by default. With every golden judged a few at a time, that runs out, so allow 30 more minutes.
+# Each judge call still has its own timeout.
+os.environ.setdefault("DEEPEVAL_TASK_GATHER_BUFFER_SECONDS_OVERRIDE", "1800")
 
 import httpx
 from deepeval import evaluate
