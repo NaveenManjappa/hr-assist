@@ -124,6 +124,8 @@ Fill in `.env` at the repo root. The backend reads it no matter which directory 
 | `CHAT_MODEL` | no | Defaults to `gpt-6-luna` |
 | `MAX_OUTPUT_TOKENS` | no | Caps each reply's output tokens, reasoning included. Defaults to `5000`. |
 | `REASONING_EFFORT` | no | `none`, `low`, `medium`, `high`, `xhigh` or `max`. Defaults to `low`. |
+| `CHAT_TIMEOUT_SECONDS`, `CHAT_MAX_RETRIES` | no | Seconds to wait for one chat response, and retries after a timeout or a transient error. Default to `60` and `2`. |
+| `EMBEDDING_TIMEOUT_SECONDS` | no | Seconds to wait for one embeddings request. Defaults to `20`. |
 | `CHUNK_MAX_TOKENS`, `CHUNK_OVERLAP_TOKENS` | no | Part of the chunking strategy, with `CHUNKING_VERSION`: override its size limit and overlap at ingestion. Only the version names the collection, so re-ingesting with new sizes under the same version replaces that collection. |
 | `RETRIEVAL_K` | no | Chunks retrieved for each question. Defaults to `3`. |
 | `RETRIEVAL_SCORE_THRESHOLD` | no | The lowest relevance, on a `(cosine + 1) / 2` scale, a chunk needs to be retrieved. When no chunk passes, the reply is an abstention without a model call. Defaults to `0.65`; `0` turns it off. |

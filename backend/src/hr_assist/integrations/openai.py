@@ -17,6 +17,8 @@ class OpenAIChatModel:
                 api_key=settings.openai_api_key.get_secret_value(),
                 max_tokens=settings.max_output_tokens,
                 reasoning_effort=settings.reasoning_effort,
+                timeout=settings.chat_timeout_seconds,
+                max_retries=settings.chat_max_retries,
             )
             .with_structured_output(AssistantReply, include_raw=True)
             .with_config(run_name="generate")

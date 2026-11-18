@@ -347,7 +347,10 @@ Important details:
 | `CHAT_MODEL` | string | `gpt-6-luna` | `OpenAIChatModel` | Any OpenAI chat model with structured output. |
 | `MAX_OUTPUT_TOKENS` | positive integer | `5000` | `OpenAIChatModel` | Caps the reply length and the cost. Reasoning tokens count against it. |
 | `REASONING_EFFORT` | `none`, `low`, `medium`, `high`, `xhigh` or `max` | `low` | `OpenAIChatModel` | How much the model reasons before answering. A higher effort needs a higher `MAX_OUTPUT_TOKENS`. |
+| `CHAT_TIMEOUT_SECONDS` | positive float | `60` | `OpenAIChatModel` | Seconds to wait for one chat response before the attempt fails. |
+| `CHAT_MAX_RETRIES` | non-negative integer | `2` | `OpenAIChatModel` | Retries after a timeout, connection error, 408, 409, 429 or 5xx, with exponential backoff. The worst case is `CHAT_TIMEOUT_SECONDS` x (retries + 1). |
 | `EMBEDDING_MODEL` | string | `text-embedding-3-small` | Retriever, ingestion, `collection_name` | A change needs a new ingestion. |
+| `EMBEDDING_TIMEOUT_SECONDS` | positive float | `20` | Retriever, ingestion | Seconds to wait for one embeddings request. Ingestion sends up to 1000 chunks per request. Retries keep the SDK default of 2. |
 | `CHUNK_MAX_TOKENS` | positive integer | unset (strategy default: 500 for v1 and v2) | CLI strategy choice | Overrides the chunk size limit of the `CHUNKING_VERSION` strategy. Not part of the collection name. |
 | `CHUNK_OVERLAP_TOKENS` | non-negative integer | unset (strategy default: 60 for v1, 100 for v2) | CLI strategy choice | Overrides the overlap. Must be smaller than the size limit. Not part of the collection name. |
 | `RETRIEVAL_K` | positive integer | `3` | `Answerer` | Chunks retrieved for each question. |
@@ -1025,7 +1028,10 @@ Design choices in the prompt:
 
 ```python
 init_chat_model(settings.chat_model, model_provider="openai",
-                api_key=..., max_tokens=settings.max_output_tokens)
+                api_key=..., max_tokens=settings.max_output_tokens,
+                reasoning_effort=settings.reasoning_effort,
+                timeout=settings.chat_timeout_seconds,
+                max_retries=settings.chat_max_retries)
   .with_structured_output(AssistantReply, include_raw=True)
   .with_config(run_name="generate")
 ```
@@ -1035,6 +1041,8 @@ init_chat_model(settings.chat_model, model_provider="openai",
 - **`include_raw=True`** returns both the parsed object and the raw message. The code reads token usage from the raw message.
 - **`max_tokens`** caps the output at 5000 tokens by default (`MAX_OUTPUT_TOKENS`). Reasoning tokens count against it, so the cap is well above a typical reply. A long reply costs more and takes longer.
 - **`reasoning_effort`** sets how much the model reasons before replying (`REASONING_EFFORT`, default `low`).
+- **`timeout`** stops waiting for a response after 60 seconds by default (`CHAT_TIMEOUT_SECONDS`). Without it the OpenAI SDK waits up to 600 seconds.
+- **`max_retries`** retries a timeout, connection error, 408, 409, 429 or 5xx twice by default (`CHAT_MAX_RETRIES`), with exponential backoff. After the last attempt fails, `generate` raises `UpstreamError`.
 
 The schema that the model fills:
 

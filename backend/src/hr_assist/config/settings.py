@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import Field, NonNegativeInt, PositiveInt, SecretStr
+from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -19,7 +19,13 @@ class Settings(BaseSettings):
     max_output_tokens: PositiveInt = 5000
     # Reasoning tokens count against max_output_tokens, so a higher effort needs a higher cap.
     reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] = "low"
+    # Seconds to wait for one OpenAI chat response, and how many times to retry a timeout,
+    # connection error, 408, 409, 429 or 5xx. The worst case is timeout x (retries + 1).
+    chat_timeout_seconds: PositiveFloat = 60
+    chat_max_retries: NonNegativeInt = 2
     embedding_model: str = "text-embedding-3-small"
+    # Seconds to wait for one embeddings request. Ingestion sends up to 1000 chunks per request.
+    embedding_timeout_seconds: PositiveFloat = 20
     # The chunking strategy: its version, and optionally its size limit and overlap. Unset sizes
     # take the version's own defaults (chunking_v1: 500/60, chunking_v2: 500/100). Only the
     # version names the collection, so change it too if you want to keep the old chunks.

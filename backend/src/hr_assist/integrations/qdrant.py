@@ -8,6 +8,14 @@ from hr_assist.corpus import Chunk, ChunkMetadata
 from hr_assist.errors import UpstreamError
 
 
+def embeddings(settings: Settings) -> OpenAIEmbeddings:
+    return OpenAIEmbeddings(
+        model=settings.embedding_model,
+        openai_api_key=settings.openai_api_key,
+        request_timeout=settings.embedding_timeout_seconds,
+    )
+
+
 class QdrantVectorStore:
     """Reports whether Qdrant is reachable, for the health check (async client)."""
 
@@ -37,9 +45,7 @@ class QdrantRetriever:
         self._store = LangChainQdrantStore(
             client=self._client,
             collection_name=settings.collection_name,
-            embedding=OpenAIEmbeddings(
-                model=settings.embedding_model, openai_api_key=settings.openai_api_key
-            ),
+            embedding=embeddings(settings),
             validate_collection_config=False,
         )
         self._score_threshold = settings.retrieval_score_threshold
@@ -85,7 +91,7 @@ def rebuild_index(chunks: list[Chunk], settings: Settings) -> None:
             Document(page_content=c.text, metadata=c.metadata.model_dump(mode="json"))
             for c in chunks
         ],
-        OpenAIEmbeddings(model=settings.embedding_model, openai_api_key=settings.openai_api_key),
+        embeddings(settings),
         ids=[c.id for c in chunks],
         url=settings.qdrant_url,
         api_key=settings.qdrant_api_key.get_secret_value(),
